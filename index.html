@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>린클 신입교육 퀴즈게임</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF9C4 0%, #E3F2FD 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.screen { display: none; width: 100%; max-width: 680px; }
+.screen.active { display: block; }
+
+/* ── 시작 화면 ── */
+.start-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 40px 36px;
+  box-shadow: 0 8px 32px rgba(92,107,192,0.13);
+  text-align: center;
+}
+.logo { font-size: 2.4rem; font-weight: 900; color: #5C6BC0; letter-spacing: -1px; margin-bottom: 4px; }
+.logo span { color: #42A5F5; }
+.subtitle { color: #888; font-size: 0.95rem; margin-bottom: 32px; }
+.session-title { font-size: 1rem; font-weight: 700; color: #444; margin-bottom: 14px; text-align: left; }
+.session-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.session-item {
+  display: flex; align-items: center; gap: 8px;
+  background: #F5F6FF; border-radius: 12px; padding: 12px 14px;
+  cursor: pointer; transition: background 0.2s;
+  border: 2px solid transparent;
+}
+.session-item:hover { background: #EAECFF; }
+.session-item.checked { border-color: #5C6BC0; background: #EEF0FF; }
+.session-item input[type=checkbox] { width: 17px; height: 17px; accent-color: #5C6BC0; cursor: pointer; flex-shrink: 0; }
+.session-item label { cursor: pointer; font-size: 0.92rem; line-height: 1.4; }
+.session-item label strong { display: block; color: #5C6BC0; font-size: 0.85rem; }
+.select-all { margin-bottom: 18px; }
+.select-all label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; color: #666; }
+.select-all input { accent-color: #5C6BC0; width: 15px; height: 15px; }
+
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #F5F6FF; border-radius: 12px; padding: 12px 16px;
+  margin-bottom: 24px;
+}
+.toggle-row span { font-size: 0.92rem; color: #555; }
+.toggle { position: relative; width: 44px; height: 24px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: #ccc; border-radius: 24px; transition: 0.3s;
+}
+.slider:before {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; left: 3px; bottom: 3px;
+  background: #fff; border-radius: 50%; transition: 0.3s;
+}
+.toggle input:checked + .slider { background: #5C6BC0; }
+.toggle input:checked + .slider:before { transform: translateX(20px); }
+
+.btn-start {
+  width: 100%; padding: 15px;
+  background: linear-gradient(90deg, #5C6BC0, #42A5F5);
+  color: #fff; font-size: 1.1rem; font-weight: 700;
+  border: none; border-radius: 14px; cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  letter-spacing: 0.5px;
+}
+.btn-start:hover { opacity: 0.92; transform: translateY(-1px); }
+.btn-start:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+/* ── 퀴즈 화면 ── */
+.quiz-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.session-badge {
+  background: #5C6BC0; color: #fff;
+  padding: 5px 13px; border-radius: 20px; font-size: 0.82rem; font-weight: 700;
+}
+.progress-text { color: #777; font-size: 0.88rem; }
+.timer-wrap { display: flex; align-items: center; gap: 6px; }
+.timer-circle {
+  width: 44px; height: 44px; position: relative;
+}
+.timer-circle svg { transform: rotate(-90deg); }
+.timer-circle circle { fill: none; stroke-linecap: round; }
+.timer-bg { stroke: #E8EAF6; stroke-width: 4; }
+.timer-fg { stroke: #5C6BC0; stroke-width: 4; stroke-dasharray: 113; transition: stroke-dashoffset 1s linear, stroke 0.3s; }
+.timer-num {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 0.78rem; font-weight: 700; color: #5C6BC0;
+}
+
+.progress-bar-wrap { height: 6px; background: #E8EAF6; border-radius: 6px; margin-bottom: 20px; overflow: hidden; }
+.progress-bar { height: 100%; background: linear-gradient(90deg, #5C6BC0, #42A5F5); border-radius: 6px; transition: width 0.4s ease; }
+
+.quiz-card {
+  background: #fff; border-radius: 20px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 6px 24px rgba(92,107,192,0.10);
+  margin-bottom: 16px;
+}
+.type-tag {
+  display: inline-block; padding: 3px 10px; border-radius: 8px;
+  font-size: 0.78rem; font-weight: 700; margin-bottom: 12px;
+  background: #EEF0FF; color: #5C6BC0;
+}
+.type-tag.ox { background: #E8F5E9; color: #388E3C; }
+.type-tag.subjective { background: #FFF3E0; color: #E65100; }
+.q-number { font-size: 0.8rem; color: #aaa; margin-bottom: 6px; }
+.q-text { font-size: 1.06rem; font-weight: 600; color: #333; line-height: 1.65; }
+
+.choices { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.choice-btn {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 13px 16px; border-radius: 12px;
+  border: 2px solid #E8EAF6; background: #FAFAFA;
+  cursor: pointer; text-align: left; font-size: 0.95rem; color: #333;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.choice-btn:hover:not(:disabled) { border-color: #9FA8DA; background: #F0F2FF; }
+.choice-btn .idx {
+  min-width: 26px; height: 26px; border-radius: 50%;
+  background: #E8EAF6; color: #5C6BC0; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; flex-shrink: 0;
+}
+.choice-btn.correct { border-color: #1E88E5; background: #E3F2FD; }
+.choice-btn.correct .idx { background: #1E88E5; color: #fff; }
+.choice-btn.wrong { border-color: #E53935; background: #FFEBEE; }
+.choice-btn.wrong .idx { background: #E53935; color: #fff; }
+.choice-btn:disabled { cursor: default; }
+
+.ox-wrap { display: flex; gap: 16px; margin-top: 20px; }
+.ox-btn {
+  flex: 1; height: 80px; border-radius: 16px; border: 3px solid #E8EAF6;
+  font-size: 2.4rem; font-weight: 900; cursor: pointer; background: #FAFAFA;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.ox-btn:hover:not(:disabled) { background: #F0F2FF; border-color: #9FA8DA; }
+.ox-btn.correct { border-color: #1E88E5; background: #E3F2FD; color: #1E88E5; }
+.ox-btn.wrong { border-color: #E53935; background: #FFEBEE; color: #E53935; }
+.ox-btn:disabled { cursor: default; }
+
+.subj-wrap { margin-top: 18px; }
+.subj-wrap textarea {
+  width: 100%; min-height: 90px; padding: 12px 14px;
+  border: 2px solid #E8EAF6; border-radius: 12px; resize: vertical;
+  font-family: inherit; font-size: 0.95rem; color: #333; line-height: 1.6;
+  transition: border-color 0.2s;
+}
+.subj-wrap textarea:focus { outline: none; border-color: #5C6BC0; }
+.btn-submit {
+  margin-top: 10px; padding: 10px 22px;
+  background: #5C6BC0; color: #fff; border: none; border-radius: 10px;
+  font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: opacity 0.2s;
+}
+.btn-submit:hover { opacity: 0.88; }
+
+.self-judge { display: flex; gap: 10px; margin-top: 14px; }
+.self-btn {
+  flex: 1; padding: 11px; border-radius: 10px; border: 2px solid #E8EAF6;
+  font-size: 1rem; font-weight: 700; cursor: pointer; background: #FAFAFA;
+  font-family: inherit; transition: border-color 0.15s, background 0.15s;
+}
+.self-btn.o:hover { border-color: #1E88E5; background: #E3F2FD; }
+.self-btn.x:hover { border-color: #E53935; background: #FFEBEE; }
+.self-btn.o.selected { border-color: #1E88E5; background: #E3F2FD; color: #1E88E5; }
+.self-btn.x.selected { border-color: #E53935; background: #FFEBEE; color: #E53935; }
+
+.feedback-box {
+  display: none; margin-top: 16px;
+  border-radius: 12px; padding: 14px 16px;
+  animation: slideDown 0.25s ease;
+}
+.feedback-box.show { display: block; }
+.feedback-box.correct-fb { background: #E3F2FD; border-left: 4px solid #1E88E5; }
+.feedback-box.wrong-fb { background: #FFEBEE; border-left: 4px solid #E53935; }
+.feedback-box.neutral-fb { background: #FFF3E0; border-left: 4px solid #FF9800; }
+.fb-label { font-size: 1rem; font-weight: 800; margin-bottom: 5px; }
+.fb-answer { font-size: 0.88rem; color: #555; margin-bottom: 6px; }
+.fb-explain { font-size: 0.88rem; color: #666; line-height: 1.6; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.btn-next {
+  display: none; width: 100%; padding: 14px;
+  background: linear-gradient(90deg, #5C6BC0, #42A5F5);
+  color: #fff; font-size: 1rem; font-weight: 700;
+  border: none; border-radius: 14px; cursor: pointer;
+  transition: opacity 0.2s; font-family: inherit;
+}
+.btn-next.show { display: block; }
+.btn-next:hover { opacity: 0.9; }
+
+/* ── 결과 화면 ── */
+.result-card {
+  background: #fff; border-radius: 24px;
+  padding: 36px 32px;
+  box-shadow: 0 8px 32px rgba(92,107,192,0.13);
+  text-align: center;
+}
+.result-title { font-size: 1.5rem; font-weight: 900; color: #5C6BC0; margin-bottom: 6px; }
+.result-sub { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
+.score-circle {
+  width: 120px; height: 120px; margin: 0 auto 24px;
+  position: relative;
+}
+.score-circle svg { transform: rotate(-90deg); }
+.score-circle circle { fill: none; stroke-linecap: round; }
+.sc-bg { stroke: #E8EAF6; stroke-width: 10; }
+.sc-fg { stroke: #5C6BC0; stroke-width: 10; stroke-dasharray: 339.3; transition: stroke-dashoffset 1s ease; }
+.score-num {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.score-num .big { font-size: 1.7rem; font-weight: 900; color: #5C6BC0; }
+.score-num .total { font-size: 0.8rem; color: #aaa; }
+
+.session-result-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; text-align: left; }
+.session-result-table th { font-size: 0.82rem; color: #aaa; padding: 6px 10px; border-bottom: 2px solid #eee; }
+.session-result-table td { padding: 8px 10px; font-size: 0.9rem; border-bottom: 1px solid #f0f0f0; }
+.session-result-table td .bar-wrap { height: 6px; background: #eee; border-radius: 6px; margin-top: 4px; }
+.session-result-table td .bar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #5C6BC0, #42A5F5); }
+
+.result-btns { display: flex; flex-direction: column; gap: 10px; }
+.name-input-wrap { margin-bottom: 20px; }
+.name-input-wrap label { display: block; font-size: 0.85rem; color: #666; margin-bottom: 8px; font-weight: 600; }
+.name-input-wrap input {
+  width: 100%; padding: 12px 14px; border: 2px solid #E8EAF6; border-radius: 12px;
+  font-family: inherit; font-size: 1rem; color: #333; transition: border-color 0.2s;
+}
+.name-input-wrap input:focus { outline: none; border-color: #5C6BC0; }
+.btn-submit-result {
+  width: 100%; padding: 13px; border-radius: 12px; font-size: 0.97rem; font-weight: 700;
+  cursor: pointer; border: none; font-family: inherit;
+  background: linear-gradient(90deg, #43A047, #66BB6A); color: #fff;
+  transition: opacity 0.2s; margin-bottom: 10px;
+}
+.btn-submit-result:hover { opacity: 0.88; }
+.btn-submit-result:disabled { background: #ccc; cursor: default; }
+.submit-msg { font-size: 0.95rem; font-weight: 700; padding: 10px; border-radius: 10px; margin-bottom: 10px; display: none; }
+.submit-msg.ok { background: #E8F5E9; color: #2E7D32; }
+.submit-msg.fail { background: #FFEBEE; color: #C62828; }
+.btn-retry, .btn-wrong-only, .btn-wrong-view {
+  padding: 13px; border-radius: 12px; font-size: 0.97rem; font-weight: 700;
+  cursor: pointer; border: none; font-family: inherit; transition: opacity 0.2s;
+}
+.btn-retry { background: linear-gradient(90deg, #5C6BC0, #42A5F5); color: #fff; }
+.btn-wrong-only { background: #FFF3E0; color: #E65100; border: 2px solid #FFB74D; }
+.btn-wrong-view { background: #F5F6FF; color: #5C6BC0; border: 2px solid #9FA8DA; }
+.btn-retry:hover, .btn-wrong-only:hover, .btn-wrong-view:hover { opacity: 0.85; }
+
+/* ── 오답 모아보기 ── */
+.wrong-list { display: none; margin-top: 20px; text-align: left; }
+.wrong-list.show { display: block; }
+.wrong-item {
+  background: #FFEBEE; border-radius: 14px; padding: 16px;
+  margin-bottom: 12px; border-left: 4px solid #E53935;
+}
+.wrong-q { font-size: 0.95rem; font-weight: 700; color: #333; margin-bottom: 8px; }
+.wrong-ans { font-size: 0.85rem; color: #1E88E5; margin-bottom: 4px; }
+.wrong-exp { font-size: 0.83rem; color: #666; line-height: 1.55; }
+
+@media (max-width: 480px) {
+  .start-card, .result-card { padding: 28px 18px; }
+  .quiz-card { padding: 20px 16px; }
+  .session-grid { grid-template-columns: 1fr; }
+  .ox-btn { height: 64px; font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ① 시작 화면 -->
+<div id="startScreen" class="screen active">
+  <div class="start-card">
+    <div class="logo">린<span>클</span> 🌱</div>
+    <div class="subtitle">신입교육 퀴즈게임</div>
+
+    <div class="session-title">풀 회차를 선택하세요</div>
+    <div class="select-all">
+      <label><input type="checkbox" id="selectAll" onchange="toggleAll(this)"> 전체 선택 / 해제</label>
+    </div>
+    <div class="session-grid">
+      <div class="session-item" id="si0" onclick="toggleSession(0)">
+        <input type="checkbox" id="s0" value="0" onchange="syncItem(0)">
+        <label for="s0"><strong>1회차</strong></label>
+      </div>
+      <div class="session-item" id="si1" onclick="toggleSession(1)">
+        <input type="checkbox" id="s1" value="1" onchange="syncItem(1)">
+        <label for="s1"><strong>2회차</strong></label>
+      </div>
+      <div class="session-item" id="si2" onclick="toggleSession(2)">
+        <input type="checkbox" id="s2" value="2" onchange="syncItem(2)">
+        <label for="s2"><strong>3회차</strong></label>
+      </div>
+      <div class="session-item" id="si3" onclick="toggleSession(3)">
+        <input type="checkbox" id="s3" value="3" onchange="syncItem(3)">
+        <label for="s3"><strong>4회차</strong></label>
+      </div>
+      <div class="session-item" id="si4" onclick="toggleSession(4)">
+        <input type="checkbox" id="s4" value="4" onchange="syncItem(4)">
+        <label for="s4"><strong>5회차</strong></label>
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <span>🔀 문제 랜덤 순서</span>
+      <label class="toggle"><input type="checkbox" id="randomToggle" checked><span class="slider"></span></label>
+    </div>
+
+    <div class="name-input-wrap" style="margin-bottom:16px;">
+      <label>이름을 입력하세요</label>
+      <input type="text" id="playerNameInput" placeholder="예) 홍길동">
+    </div>
+    <button class="btn-start" id="btnStart" onclick="startQuiz()">시작하기 🚀</button>
+    <div style="margin-top:20px; color:#bbb; font-size:0.75rem; line-height:1.6;">
+      Created by<br>
+      <span style="color:#9FA8DA; font-weight:700;">BnTech CX Team Lead Dasomi</span>
+    </div>
+  </div>
+</div>
+
+<!-- ② 퀴즈 화면 -->
+<div id="quizScreen" class="screen">
+  <div class="quiz-header">
+    <span class="session-badge" id="sessionBadge">1회차</span>
+    <span class="progress-text" id="progressText">1 / 10</span>
+    <div class="timer-wrap">
+      <div class="timer-circle">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle class="timer-bg" cx="22" cy="22" r="18"/>
+          <circle class="timer-fg" id="timerCircle" cx="22" cy="22" r="18"/>
+        </svg>
+        <div class="timer-num" id="timerNum">30</div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progressBar" style="width:0%"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="type-tag" id="typeTag">객관식</div>
+    <div class="q-number" id="qNumber">Q1</div>
+    <div class="q-text" id="qText"></div>
+
+    <div id="choicesWrap" class="choices"></div>
+    <div id="oxWrap" class="ox-wrap" style="display:none">
+      <button class="ox-btn" id="btnO" onclick="answerOX('O')">O</button>
+      <button class="ox-btn" id="btnX" onclick="answerOX('X')">X</button>
+    </div>
+    <div id="subjWrap" class="subj-wrap" style="display:none">
+      <textarea id="subjArea" placeholder="답을 직접 입력하세요..."></textarea>
+      <button class="btn-submit" onclick="submitSubj()">제출</button>
+      <div id="selfJudge" class="self-judge" style="display:none">
+        <button class="self-btn o" onclick="selfScore(true)">✅ 맞았어요</button>
+        <button class="self-btn x" onclick="selfScore(false)">❌ 틀렸어요</button>
+      </div>
+    </div>
+
+    <div class="feedback-box" id="feedbackBox">
+      <div class="fb-label" id="fbLabel"></div>
+      <div class="fb-answer" id="fbAnswer"></div>
+      <div class="fb-explain" id="fbExplain"></div>
+    </div>
+  </div>
+
+  <button class="btn-next" id="btnNext" onclick="nextQuestion()">다음 문제 →</button>
+</div>
+
+<!-- ③ 결과 화면 -->
+<div id="resultScreen" class="screen">
+  <div class="result-card">
+    <div class="result-title">🎉 퀴즈 완료!</div>
+    <div class="result-sub" id="resultSub"></div>
+
+    <div class="score-circle">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle class="sc-bg" cx="60" cy="60" r="54"/>
+        <circle class="sc-fg" id="scoreCircle" cx="60" cy="60" r="54"/>
+      </svg>
+      <div class="score-num">
+        <span class="big" id="scoreNum"></span>
+        <span class="total" id="scoreTotal"></span>
+      </div>
+    </div>
+
+    <table class="session-result-table">
+      <thead><tr><th>회차</th><th>정답</th><th>정답률</th></tr></thead>
+      <tbody id="sessionResultBody"></tbody>
+    </table>
+
+    <button class="btn-submit-result" id="btnSubmitResult" onclick="submitResult()">📤 결과 제출하기</button>
+    <div class="submit-msg" id="submitMsg"></div>
+
+    <div class="result-btns">
+      <button class="btn-retry" onclick="retryAll()">🔄 전체 다시 풀기</button>
+      <button class="btn-wrong-only" id="btnWrongOnly" onclick="retryWrong()">❌ 오답만 다시 풀기</button>
+      <button class="btn-wrong-view" onclick="toggleWrongList()">📋 오답 모아보기</button>
+    </div>
+
+    <div class="wrong-list" id="wrongList"></div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  // ── 1회차 ──
+  { session: 0, no: 1, type: 'mc',
+    q: '(주)비앤테크의 고객센터 전화번호는?',
+    choices: ['055-785-0664', '1644-5075', '1588-1234', '055-123-4567'],
+    answer: 1,
+    explain: '대표번호는 055-785-0665, 고객센터는 1644-5075입니다.' },
+
+  { session: 0, no: 2, type: 'mc',
+    q: '현재 판매 중인 음식물처리기 모델이 아닌 것은?',
+    choices: ['RC-Prime300', 'RC-GT500', 'RC-Easy100', 'RC-01'],
+    answer: 3,
+    explain: 'RC-01은 최초 출시 후 단종된 모델입니다.' },
+
+  { session: 0, no: 3, type: 'mc',
+    q: '모델별 일일 권장 투입량 연결이 잘못된 것은?',
+    choices: ['이지(RC-Easy100): 0.7 kg', '프라임(RC-Prime300): 0.7 kg', '그래비티(RC-GT500): 1 kg', 'RC-02: 0.5 kg'],
+    answer: 3,
+    explain: 'RC-02 권장 투입량은 1 kg (최대 1.5 kg)입니다.' },
+
+  { session: 0, no: 4, type: 'mc',
+    q: '다음 중 설치 장소로 가장 권장되지 않는 곳은?',
+    choices: ['환기 잘되는 다용도실', '통풍 원활한 베란다', '싱크대 하부 / 수납장 내부', '실내 보조주방'],
+    answer: 2,
+    explain: '밀폐 공간은 통풍 불량으로 미생물 활동과 탈취에 악영향을 줍니다.' },
+
+  { session: 0, no: 5, type: 'mc',
+    q: '뚜껑을 열었을 때 높이가 올바르게 짝지어진 것은?',
+    choices: ['RC-02: 82 cm / 프라임: 73 cm', 'RC-02: 73 cm / 프라임: 82 cm', '그래비티: 73 cm / 이지: 60 cm', '모든 모델 동일'],
+    answer: 0,
+    explain: 'RC-02 82cm, RC-Prime300 73cm, RC-GT500 81cm, RC-Easy100 64cm, RT-200 65cm입니다.' },
+
+  { session: 0, no: 6, type: 'mc',
+    q: '린클 제품의 파워코드 길이가 올바른 것은?',
+    choices: ['RC-02: 1.5 m', 'RC-Prime300: 1.8 m', 'RC-GT500: 1.8 m', '모든 모델 1.0 m'],
+    answer: 1,
+    explain: 'RC-02·RC-Prime300은 1.8 m, RC-GT500은 어댑터 포함 3.51 m입니다.' },
+
+  { session: 0, no: 7, type: 'ox',
+    q: '린클은 설치 기사 없이 코드만 꽂으면 바로 사용 가능하다.',
+    answer: 'O',
+    explain: '설치가 간단하여 별도 기사 방문 없이 전원 연결 후 전원 버튼만 누르면 됩니다.' },
+
+  { session: 0, no: 8, type: 'ox',
+    q: 'RC-GT500(W)는 앱으로 제품을 제어할 수 있다.',
+    answer: 'O',
+    explain: 'RC-GT500W는 앱 구동 기능이 추가된 모델입니다.' },
+
+  { session: 0, no: 9, type: 'subj',
+    q: '초기 미생물 배양 단계를 순서대로 설명하시오.',
+    answer: '① 포장 열고 푸드클리너 전량 투입 ② 깨끗한 물 1.8L 골고루 붓기 ③ 덮개 닫고 3~6시간 대기(활성화) ④ 밥·빵 소량(초기 300g)으로 분해 테스트 ⑤ 분해 확인 후 500g→700g으로 점차 투입량 증가',
+    explain: '순서에 따라 배양이 필요하며, 부산물이 MAX선 도달 시 MIN선까지 퍼내야합니다.' },
+
+  { session: 0, no: 10, type: 'subj',
+    q: '린클의 공식 고객센터 운영시간과 채널을 쓰시오.',
+    answer: '평일 09:00~16:00 / 채널: reencle.channel.io, 전화 1644-5075',
+    explain: '주말·공휴일은 운영하지 않습니다.' },
+
+  // ── 2회차 ──
+  { session: 1, no: 11, type: 'mc',
+    q: '초기 미생물 배양 시 투입해야 하는 물의 양은?',
+    choices: ['500 mL', '1.0 L', '1.8 L', '3.0 L'],
+    answer: 2,
+    explain: '미생물제제 전량 투입 후 깨끗한 물 약 1.8 L를 넣고 3~6시간 안정화합니다.' },
+
+  { session: 1, no: 12, type: 'mc',
+    q: '미생물이 MAX선에 도달했을 때 올바른 처리 방법은?',
+    choices: ['전량 폐기 후 새 미생물 투입', 'MIN선까지 퍼내어 버린다', '그대로 계속 사용한다', '물을 추가 투입한다'],
+    answer: 1,
+    explain: 'MAX선 도달 시 MIN선까지 퍼내어 폐기합니다. 일반쓰레기 배출로 권장드리나, 지자체 기준에 따라 음식물 쓰레기로 배출해야 하는 곳도 있습니다.' },
+
+  { session: 1, no: 13, type: 'mc',
+    q: '미생물 상태가 나쁠 때 (질퍽함, 뭉침 등) 조치로 틀린 것은?',
+    choices: ['제습 버튼 가동', '삽으로 풀어주기', '전원 끄고 방치하기', '일부 덜어내기 (MIN선까지)'],
+    answer: 2,
+    explain: '전원을 끄면 미생물이 비활성화되어 상태가 더 나빠집니다. 전원은 항상 켜야 합니다.' },
+
+  { session: 1, no: 14, type: 'mc',
+    q: '다음 중 린클에 투입 가능한 항목은?',
+    choices: ['생분해 거름망', '익힌 생선·고기류', '전복·조개 껍데기', '고양이 모래'],
+    answer: 1,
+    explain: '생분해 거름망은 교반봉 고장 유발, 패류 껍데기와 고양이 모래는 비식품성 일반쓰레기입니다.' },
+
+  { session: 1, no: 15, type: 'mc',
+    q: '미생물 배양에 알맞은 내부 온도 범위는?',
+    choices: ['20~30℃', '35~45℃', '55~60℃', '70~80℃'],
+    answer: 2,
+    explain: '린클 내부는 미생물 배양에 최적인 55~65℃로 유지됩니다.' },
+
+  { session: 1, no: 16, type: 'ox',
+    q: '상한 음식물이나 곰팡이 핀 음식물은 절대 투입할 수 없다.',
+    answer: 'X',
+    explain: '분해는 되지만 일시적으로 악취가 발생할 수 있어 권장하지 않는 것이며, 절대 불가는 아닙니다.' },
+
+  { session: 1, no: 17, type: 'ox',
+    q: '자연분해 거름망은 전분 성분이므로 린클에 투입해도 된다.',
+    answer: 'X',
+    explain: '시중 자연분해 거름망은 100% 전분이 아니며 기타 성분이 함유되어 분해 불가. 교반봉에 감겨 고장을 유발합니다.' },
+
+  { session: 1, no: 18, type: 'ox',
+    q: '초기 배양 단계에서 과일 껍질·채소를 전혀 투입하면 안 된다.',
+    answer: 'X',
+    explain: '투입 자체는 가능하나, 당·산성 성분으로 냄새 유발 가능성이 있어 과다 투입을 자제하는 것이 좋습니다.' },
+
+  { session: 1, no: 19, type: 'subj',
+    q: '고춧가루, 마늘 등 향신료 투입 시 주의사항을 설명하시오.',
+    answer: '향신료의 항균 성분이 미생물 성장을 억제할 수 있어 소량씩 분산 투입해야 하며, 한 종류만 대량 투입하는 영양 불균형을 피해야 합니다.',
+    explain: '항균 성분으로 인한 미생물 억제 가능성을 고객에게 안내합니다.' },
+
+  { session: 1, no: 20, type: 'subj',
+    q: '4일 이상 장기 여행 시 미생물 보관 방법을 단계별로 설명하시오.',
+    answer: '① 여행 2~3일 전부터 음식물 투입 중단 ② 분해되지 않은 음식물 전부 걷어내어 밀봉 ③ 직사광선 피해 건조한 곳에 보관 ④ 복귀 후 물 500mL 넣고 골고루 섞은 후 가동',
+    explain: '분해되지 않은 음식물이 남아 있으면 악취 발생 가능성이 있습니다.' },
+
+  // ── 3회차 ──
+  { session: 2, no: 21, type: 'mc',
+    q: '활성탄필터의 일반적인 교체 주기는?',
+    choices: ['1~3개월', '3~6개월', '6개월~1년', '2년 고정'],
+    answer: 2,
+    explain: '통상 6개월~1년이며, 미생물 상태가 좋지 않으면 1개월 미만으로 단축될 수 있습니다.' },
+
+  { session: 2, no: 22, type: 'mc',
+    q: '활성탄필터 교체 시기를 알 수 있는 방법은?',
+    choices: ['기기 알림음 발생', '앱 알림', '기기 주변의 시큼한 냄새', '필터 색상 변화'],
+    answer: 2,
+    explain: '기기에는 별도 교체 알림이 없으며, 기기 주변의 시큼한 냄새로 확인합니다.' },
+
+  { session: 2, no: 23, type: 'mc',
+    q: '린클 필터(활성탄 필터) 설명으로 옳은 것은?',
+    choices: ['3개월마다 정기 교체', '물세척 후 재사용 가능', '케이스는 플라스틱 분리 배출, 활성탄은 일반쓰레기', '필터 전체를 일반쓰레기로 배출'],
+    answer: 2,
+    explain: '활성탄 내용물은 일반쓰레기, 케이스는 플라스틱으로 분리 배출합니다. 만약 분리가 어렵다면 타지않는 일반쓰레기로 폐기해주셔야 합니다!' },
+
+  { session: 2, no: 24, type: 'mc',
+    q: 'RC-Prime300 활성탄필터 가격은? (배송비 포함)',
+    choices: ['17,000원', '19,800원', '22,000원', '15,000원'],
+    answer: 1,
+    explain: 'RC-Prime300 활성탄필터는 19,800원(배송비 포함)입니다. RC-02는 17,000원입니다.' },
+
+  { session: 2, no: 25, type: 'mc',
+    q: '미생물 복구 불가 판단 기준으로 맞는 것은?',
+    choices: ['미생물 색이 갈색으로 변한 경우', '미생물 전체가 액체화되거나 기름층이 쌓인 경우', '미생물에 곰팡이가 생긴 경우', '미생물이 건조해진 경우'],
+    answer: 1,
+    explain: '전체 액체화 또는 기름층 형성 시 복구가 어려워 미생물 교체를 권유합니다.' },
+
+  { session: 2, no: 26, type: 'ox',
+    q: '린클 제품 내부는 물을 직접 부어 세척해도 된다.',
+    answer: 'X',
+    explain: '내부 열선에 물 침투 시 고장·감전 위험. 물티슈·행주로만 닦아야 합니다.' },
+
+  { session: 2, no: 27, type: 'ox',
+    q: '린클 제품의 무상 A/S 보증 기간은 구매일로부터 1년이다.',
+    answer: 'O',
+    explain: '1년 경과 후 또는 고객 과실로 인한 수리는 유상입니다.' },
+
+  { session: 2, no: 28, type: 'ox',
+    q: '미생물에 곰팡이가 핀 경우 미생물이 죽은 것이므로 전량 교체해야 한다.',
+    answer: 'X',
+    explain: '곰팡이가 핀 경우 삽으로 섞어주고 가동하면 됩니다. 미생물이 죽은 것이 아닙니다.' },
+
+  { session: 2, no: 29, type: 'subj',
+    q: '미생물이 질퍽해져서 돌아오지 않을 때 복구 방법을 단계별로 설명하시오.',
+    answer: '① MIN선까지만 남기고 나머지 퍼내 폐기 ② 물기·기름기를 키친타올·신문지로 제거 ③ 제습 버튼 최소 3일 가동(24시간마다 재가동) ④ 복구 중 음식물 투입 금지 ⑤ 보송보송한 흙 형태로 돌아올 때까지 대기',
+    explain: '복구 중 음식물 투입 금지가 핵심입니다.' },
+
+  { session: 2, no: 30, type: 'subj',
+    q: '배기 필터망이 막혔을 때 나타나는 증상과 해결 방법을 설명하시오.',
+    answer: '증상: 탈취·제습 기능 저하, 내부 악취 발생 / 해결: 배기필터망 분리 후 물로 세척, 완전 건조 후 재장착',
+    explain: '배기필터망이 막히면 공기 순환이 안 되어 미생물 상태도 악화됩니다.' },
+
+  // ── 4회차 ──
+  { session: 3, no: 31, type: 'mc',
+    q: '다음 중 린클 잠금 설정 단계에 대한 설명으로 옳은 것은?',
+    choices: ['1회 터치: 열림 버튼 잠금', '2회 터치: 발 센서 + 열림 버튼 동시 잠금', '3회 터치: 발 센서만 잠금 해제', '전원 재기동 후에도 잠금 유지'],
+    answer: 1,
+    explain: '1회: 발 센서 잠금 / 2회: 발 센서+열림 버튼 동시 잠금 / 3회: 전체 잠금 해제. 전원 재기동 시 초기화됩니다.' },
+
+  { session: 3, no: 32, type: 'mc',
+    q: '외부 결로(물 고임) 문의 시 가장 먼저 안내할 내용은?',
+    choices: ['즉시 교환 처리', '내외부 온도차 설명 및 환경 점검 안내', '필터 무조건 교체', '미생물 재구매'],
+    answer: 1,
+    explain: '결로는 내부(55~60℃)와 외부 냉기 온도차로 발생하는 정상 현상입니다.' },
+
+  { session: 3, no: 33, type: 'mc',
+    q: '절전모드가 적용되지 않는 모델은?',
+    choices: ['RC-02', 'RC-Prime300', 'RC-GT500', 'RT-200'],
+    answer: 0,
+    explain: '절전모드는 RC-GT500 전용 기능입니다.' },
+
+  { session: 3, no: 34, type: 'mc',
+    q: '프라임 작은 덮개를 발 센서로 열 때 올바른 방법은?',
+    choices: ['센서에 바짝 붙어서 발을 댄다', '30cm 앞에서 천천히 다가가 2~3초 멈춘다', '센서 위를 빠르게 지나간다', '센서 바로 아래를 터치한다'],
+    answer: 1,
+    explain: '30cm 뒤에서 천천히 다가가 센서를 덮듯 발로 가려 2~3초간 멈추면 열립니다.' },
+
+  { session: 3, no: 35, type: 'mc',
+    q: '교반봉 작동 테스트 시 자석을 사용하는 이유는?',
+    choices: ['자석이 교반봉을 직접 회전시킨다', '뚜껑을 열면 안전상 교반봉이 자동으로 멈추기 때문', '자석이 센서를 고장 낸다', '자석으로 미생물을 확인한다'],
+    answer: 1,
+    explain: '뚜껑을 열면 안전상 교반봉이 자동 정지하므로, 자석으로 덮개 열림 센서를 속여 뚜껑이 닫힌 상태로 인식하게 해서 작동을 확인합니다.' },
+
+  { session: 3, no: 36, type: 'ox',
+    q: '제습 버튼과 탈취 버튼은 24시간 후 자동으로 꺼진다.',
+    answer: 'O',
+    explain: '탈취·제습 버튼은 가동 후 24시간이 지나면 자동으로 꺼집니다.' },
+
+  { session: 3, no: 37, type: 'ox',
+    q: '린클은 상시 가전이므로 전원을 항상 켜두어야 한다.',
+    answer: 'O',
+    explain: '전원을 끄면 내부 온도가 낮아져 미생물이 비활성화되고 음식물이 정상 분해되지 않습니다.' },
+
+  { session: 3, no: 38, type: 'ox',
+    q: 'RC-02는 속 뚜껑 없이 사용해도 무방하다.',
+    answer: 'X',
+    explain: 'RC-02는 속 뚜껑이 필수입니다. 실링 효과로 적정온도 유지와 냄새 차단, 덮개 부식 방지 역할을 합니다.' },
+
+  { session: 3, no: 39, type: 'subj',
+    q: "고객이 '발 센서가 작동하지 않아요'라고 문의했을 때, 순서대로 확인해야 할 사항을 쓰시오.",
+    answer: '① 전원 켜진 상태 확인 ② 잠금 기능 활성화 여부 확인(열림 버튼 LED 상태) ③ 센서 감지 방법 확인(30cm 앞에서 천천히 접근) ④ 검정 신발·반사체(거울·유리) 등 인식 오류 원인 확인',
+    explain: '센서 불량을 단정하기 전에 위 순서대로 확인합니다.' },
+
+  { session: 3, no: 40, type: 'subj',
+    q: '절전모드의 개념과 전력 절감 수치를 설명하시오.',
+    answer: 'RC-GT500 전용 기능. 3시간마다 교반 동작 실행. 평균 소비전력 47W→37W, 일일 소비전력량 1.13kWh→0.89kWh로 절감.',
+    explain: 'RC-GT500 모델 한정 기능임을 명확히 안내해야 합니다.' },
+
+  // ── 5회차 ──
+  { session: 4, no: 41, type: 'mc',
+    q: '사용한 필터를 배출하는 방법으로 올바르지 않은 것은?',
+    choices: ['활성탄 내용물은 종량제 봉투에 버린다', '케이스는 원칙적으로 플라스틱 분리 배출', '오염이 심한 케이스도 반드시 플라스틱으로 배출해야 한다', '분리가 어려우면 일반쓰레기로 배출 가능'],
+    answer: 2,
+    explain: '분리가 어려울 만큼 오염이 심한 경우 일반쓰레기로 배출 가능합니다.' },
+
+  { session: 4, no: 42, type: 'mc',
+    q: '린클 소음 관련 설명 중 즉시 A/S가 필요한 경우는?',
+    choices: ['제습·탈취 버튼 누를 때 진동음 증폭', '미생물 건조 시 마찰 소음', '미생물 제거 후 작동 시 굉음 또는 웅 소음', '이물질 투입 시 탁탁 소음'],
+    answer: 2,
+    explain: '미생물을 모두 제거한 상태에서 굉음이나 웅 소음, 이물질이 없는 상태에서 탁탁 소음이 발생하면 A/S가 필요합니다.' },
+
+  { session: 4, no: 43, type: 'mc',
+    q: '전원 버튼이 깜빡이며 경고음이 울리는 RC-02 원인은?',
+    choices: ['미생물 과다', '필터 오염', '덮개(속 뚜껑)가 완전히 닫히지 않은 상태', '모터 불량'],
+    answer: 2,
+    explain: 'RC-02에서 전원 버튼이 깜빡이며 경고음이 울리면 속 뚜껑이 제대로 닫혔는지 확인합니다.' },
+
+  { session: 4, no: 44, type: 'mc',
+    q: "다음 중 '분리배출이 필요한 일반 쓰레기'로 올바른 것은?",
+    choices: ['씻은 상태의 김치', '면·곡류', '뼈류·생선가시와 내장', '과일류'],
+    answer: 2,
+    explain: '뼈류·생선가시·내장은 딱딱하거나 분해가 어려워 교반봉 파손 원인이 됩니다. 일반쓰레기로 분리배출해야 합니다.' },
+
+  { session: 4, no: 45, type: 'mc',
+    q: '스마트스토어 반품 요청 시 제조사 과실인 경우 반품 비용 처리 방법은?',
+    choices: ['고객 부담', '반품 비용 없음', '반반 부담', '상황에 따라 다름'],
+    answer: 1,
+    explain: '반품 상세 사유가 제조사 과실인 경우 반품 비용을 받지 않습니다.' },
+
+  { session: 4, no: 46, type: 'ox',
+    q: '스마트스토어 상품문의는 모든 고객이 답변을 볼 수 있으므로 신중히 작성해야 한다.',
+    answer: 'O',
+    explain: '상품문의 답글은 공개되므로 신중하게 작성해야 합니다.' },
+
+  { session: 4, no: 47, type: 'ox',
+    q: "발주서에서 취소 처리 시 '삭제' 버튼을 눌러 내역을 지워야 한다.",
+    answer: 'X',
+    explain: "'출고 전 취소' 버튼을 눌러야 빨간 라인으로 표시되어 취소 내역이 확인 가능합니다. 삭제는 잘못 입력된 경우에만 사용합니다." },
+
+  { session: 4, no: 48, type: 'subj',
+    q: '교환·환불 기준을 제조사 과실과 고객 과실로 나누어 설명하시오.',
+    answer: '제조사 과실: 무상보증기간(1년) 이내 결함 시 교환·환불 가능, 반품 비용 없음 / 고객 과실: 낙하·물 세척·이물질 투입 등 부주의로 인한 파손은 유상 수리 대상',
+    explain: '핵심 판단 기준은 제조사 과실 vs 고객 과실 구분입니다.' },
+
+  { session: 4, no: 49, type: 'subj',
+    q: '잠금 해제가 되지 않거나 버튼 인식이 안 된다는 고객에게 안내해야 할 추가 조치 사항을 순서대로 쓰시오.',
+    answer: '① 전원 끄고 다시 켜서 리셋 시도 ② 증상 재현 영상 촬영 요청 후 채널톡/카카오톡으로 전송 ③ 영상 확인 후 부품 불량 판단 시 A/S 접수 안내 (1644-5075 / reencle.channel.io)',
+    explain: '소프트웨어 리셋 후에도 지속되면 키 PCB 불량 가능성으로 A/S 연결합니다.' },
+
+  { session: 4, no: 50, type: 'subj',
+    q: '교반봉 회전 방향과 그 이유를 설명하시오.',
+    answer: '정방향(시계 방향)과 역방향(반시계 방향)으로 교대 회전. 미생물과 음식물이 한쪽으로 뭉치지 않고 골고루 섞이도록 하기 위한 설계.',
+    explain: '교대 회전 구조를 정확히 설명할 수 있어야 합니다. 5분 순방향 → 5분 역방향 → 20분 휴지(멈춤) 순으로 동작합니다.' }
+];
+
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwS-iygjW2YhdiMoTq5Oi0rmVv1cnh4RRp6bY-oA4E6c6BvzKN28e8jO30-spPwVVw7/exec';
+
+function submitResult() {
+  const name = playerName;
+
+  const score = parseInt(document.getElementById('scoreNum').textContent);
+  const total = parseInt(document.getElementById('scoreTotal').textContent.replace(/[^0-9]/g, ''));
+  const percent = total > 0 ? Math.round(score / total * 100) : 0;
+  const rows = document.querySelectorAll('#sessionResultBody tr');
+  const sessions = Array.from(rows).map(r => r.cells[0].textContent).join(', ');
+
+  const btn = document.getElementById('btnSubmitResult');
+  const msg = document.getElementById('submitMsg');
+  btn.disabled = true;
+  btn.textContent = '제출 중...';
+
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, score, total, percent, sessions })
+  }).then(() => {
+    msg.className = 'submit-msg ok';
+    msg.style.display = 'block';
+    msg.textContent = '✅ 제출 완료! 구글 시트에 기록됐어요.';
+    btn.textContent = '✅ 제출됨';
+  }).catch(() => {
+    msg.className = 'submit-msg fail';
+    msg.style.display = 'block';
+    msg.textContent = '❌ 제출 실패. 인터넷 연결을 확인해주세요.';
+    btn.disabled = false;
+    btn.textContent = '📤 결과 제출하기';
+  });
+}
+
+const SESSION_NAMES = ['1회차 — 회사·제품 기초', '2회차 — 미생물 관리', '3회차 — 소모품·제품 관리', '4회차 — 기능·트러블슈팅', '5회차 — 고객 응대·심화'];
+
+let quizList = [];
+let current = 0;
+let scores = {}; // sessionIdx -> {correct, total}
+let wrongItems = [];
+let timerInterval = null;
+let timeLeft = 0;
+let answered = false;
+let isWrongRetry = false;
+let playerName = '';
+
+// ── 시작 화면 로직 ──
+function toggleSession(idx) {
+  const cb = document.getElementById('s' + idx);
+  cb.checked = !cb.checked;
+  syncItem(idx);
+  syncSelectAll();
+}
+function syncItem(idx) {
+  const item = document.getElementById('si' + idx);
+  item.classList.toggle('checked', document.getElementById('s' + idx).checked);
+  syncSelectAll();
+}
+function syncSelectAll() {
+  const all = [0,1,2,3,4].every(i => document.getElementById('s'+i).checked);
+  document.getElementById('selectAll').checked = all;
+}
+function toggleAll(el) {
+  [0,1,2,3,4].forEach(i => {
+    document.getElementById('s'+i).checked = el.checked;
+    syncItem(i);
+  });
+}
+function stopPropagation(e) { e.stopPropagation(); }
+document.querySelectorAll('.session-item input').forEach(cb => cb.addEventListener('click', e => e.stopPropagation()));
+
+function startQuiz(wrongOnly) {
+  if (!wrongOnly) {
+    playerName = document.getElementById('playerNameInput').value.trim();
+    if (!playerName) { alert('이름을 입력해주세요!'); return; }
+  }
+  const selected = [0,1,2,3,4].filter(i => document.getElementById('s'+i).checked);
+  if (selected.length === 0) { alert('회차를 하나 이상 선택하세요.'); return; }
+
+  const random = document.getElementById('randomToggle').checked;
+  isWrongRetry = !!wrongOnly;
+
+  if (wrongOnly) {
+    quizList = [...wrongItems];
+  } else {
+    quizList = QUESTIONS.filter(q => selected.includes(q.session));
+  }
+
+  if (random) quizList = shuffle([...quizList]);
+
+  scores = {};
+  selected.forEach(i => scores[i] = { correct: 0, total: 0 });
+  wrongItems = [];
+  current = 0;
+
+  showScreen('quizScreen');
+  renderQuestion();
+}
+
+function retryAll() {
+  isWrongRetry = false;
+  showScreen('startScreen');
+}
+function retryWrong() {
+  if (wrongItems.length === 0) { alert('오답이 없어요! 🎉'); return; }
+  startQuiz(true);
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ── 퀴즈 화면 ──
+function renderQuestion() {
+  answered = false;
+  const q = quizList[current];
+
+  document.getElementById('sessionBadge').textContent = SESSION_NAMES[q.session];
+  document.getElementById('progressText').textContent = `${current + 1} / ${quizList.length}`;
+  document.getElementById('progressBar').style.width = (current / quizList.length * 100) + '%';
+  document.getElementById('qNumber').textContent = 'Q' + q.no;
+  document.getElementById('qText').textContent = q.q;
+
+  const typeTag = document.getElementById('typeTag');
+  typeTag.className = 'type-tag';
+  if (q.type === 'mc') { typeTag.textContent = '객관식'; }
+  else if (q.type === 'ox') { typeTag.textContent = 'O / X'; typeTag.classList.add('ox'); }
+  else { typeTag.textContent = '주관식'; typeTag.classList.add('subjective'); }
+
+  // 보기 영역
+  document.getElementById('choicesWrap').innerHTML = '';
+  document.getElementById('choicesWrap').style.display = 'none';
+  document.getElementById('oxWrap').style.display = 'none';
+  document.getElementById('subjWrap').style.display = 'none';
+  document.getElementById('selfJudge').style.display = 'none';
+  document.getElementById('subjArea').value = '';
+  document.getElementById('btnO').className = 'ox-btn';
+  document.getElementById('btnX').className = 'ox-btn';
+  document.getElementById('btnO').disabled = false;
+  document.getElementById('btnX').disabled = false;
+
+  if (q.type === 'mc') {
+    document.getElementById('choicesWrap').style.display = 'flex';
+    const symbols = ['①', '②', '③', '④'];
+    q.choices.forEach((c, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.innerHTML = `<span class="idx">${symbols[i]}</span><span>${c}</span>`;
+      btn.onclick = () => answerMC(i);
+      document.getElementById('choicesWrap').appendChild(btn);
+    });
+  } else if (q.type === 'ox') {
+    document.getElementById('oxWrap').style.display = 'flex';
+  } else {
+    document.getElementById('subjWrap').style.display = 'block';
+  }
+
+  hideFeedback();
+  document.getElementById('btnNext').classList.remove('show');
+
+  // 타이머
+  const sec = q.type === 'subj' ? 120 : 30;
+  startTimer(sec);
+}
+
+function startTimer(sec) {
+  clearInterval(timerInterval);
+  timeLeft = sec;
+  updateTimerUI(sec, sec);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerUI(timeLeft, sec);
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      if (!answered) timeExpired();
+    }
+  }, 1000);
+}
+
+function updateTimerUI(left, total) {
+  const circ = 2 * Math.PI * 18; // 113.1
+  const offset = circ - (left / total) * circ;
+  const fg = document.getElementById('timerCircle');
+  fg.style.strokeDashoffset = offset;
+  fg.style.stroke = left <= 10 ? '#E53935' : '#5C6BC0';
+  document.getElementById('timerNum').textContent = left;
+  document.getElementById('timerNum').style.color = left <= 10 ? '#E53935' : '#5C6BC0';
+}
+
+function timeExpired() {
+  answered = true;
+  const q = quizList[current];
+  if (!isWrongRetry) {
+    if (scores[q.session]) scores[q.session].total++;
+  }
+  wrongItems.push(q);
+  showFeedback(false, q);
+  disableAll(q);
+  document.getElementById('btnNext').classList.add('show');
+}
+
+function answerMC(idx) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  const q = quizList[current];
+  const correct = idx === q.answer;
+  recordScore(q, correct);
+
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) btn.classList.add('correct');
+    else if (i === idx && !correct) btn.classList.add('wrong');
+  });
+  showFeedback(correct, q);
+  document.getElementById('btnNext').classList.add('show');
+}
+
+function answerOX(val) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  const q = quizList[current];
+  const correct = val === q.answer;
+  recordScore(q, correct);
+
+  const btnO = document.getElementById('btnO');
+  const btnX = document.getElementById('btnX');
+  btnO.disabled = true; btnX.disabled = true;
+
+  if (q.answer === 'O') btnO.classList.add('correct');
+  else btnX.classList.add('correct');
+  if (!correct) {
+    if (val === 'O') btnO.classList.add('wrong');
+    else btnX.classList.add('wrong');
+  }
+  showFeedback(correct, q);
+  document.getElementById('btnNext').classList.add('show');
+}
+
+function submitSubj() {
+  if (answered) return;
+  clearInterval(timerInterval);
+  const q = quizList[current];
+  const fb = document.getElementById('feedbackBox');
+  fb.className = 'feedback-box neutral-fb show';
+  document.getElementById('fbLabel').textContent = '📋 모범 답안';
+  document.getElementById('fbAnswer').textContent = '정답: ' + q.answer;
+  document.getElementById('fbExplain').textContent = '해설: ' + q.explain;
+  document.getElementById('selfJudge').style.display = 'flex';
+  document.querySelector('.btn-submit').disabled = true;
+  document.getElementById('btnNext').classList.add('show');
+}
+
+function selfScore(correct) {
+  if (answered) return;
+  answered = true;
+  const q = quizList[current];
+  recordScore(q, correct);
+
+  document.querySelectorAll('.self-btn').forEach(b => b.disabled = true);
+  if (correct) {
+    document.querySelector('.self-btn.o').classList.add('selected');
+  } else {
+    document.querySelector('.self-btn.x').classList.add('selected');
+  }
+
+  const fb = document.getElementById('feedbackBox');
+  if (correct) {
+    fb.className = 'feedback-box correct-fb show';
+    document.getElementById('fbLabel').textContent = '✅ 정답으로 처리했어요!';
+  } else {
+    fb.className = 'feedback-box wrong-fb show';
+    document.getElementById('fbLabel').textContent = '❌ 오답으로 처리했어요';
+  }
+  document.getElementById('fbAnswer').textContent = '정답: ' + q.answer;
+  document.getElementById('fbExplain').textContent = '해설: ' + q.explain;
+  document.getElementById('btnNext').classList.add('show');
+}
+
+function recordScore(q, correct) {
+  if (!isWrongRetry) {
+    if (!scores[q.session]) scores[q.session] = { correct: 0, total: 0 };
+    scores[q.session].total++;
+    if (correct) scores[q.session].correct++;
+  }
+  if (!correct) {
+    if (!wrongItems.find(w => w.no === q.no)) wrongItems.push(q);
+  } else {
+    wrongItems = wrongItems.filter(w => w.no !== q.no);
+  }
+}
+
+function showFeedback(correct, q) {
+  const fb = document.getElementById('feedbackBox');
+  fb.className = 'feedback-box ' + (correct ? 'correct-fb' : 'wrong-fb') + ' show';
+  document.getElementById('fbLabel').textContent = correct ? '✅ 정답!' : '❌ 오답';
+  document.getElementById('fbAnswer').textContent = '정답: ' + (q.type === 'mc' ? ['①','②','③','④'][q.answer] + ' ' + q.choices[q.answer] : q.answer);
+  document.getElementById('fbExplain').textContent = '해설: ' + q.explain;
+}
+
+function hideFeedback() {
+  document.getElementById('feedbackBox').className = 'feedback-box';
+}
+
+function disableAll(q) {
+  if (q.type === 'mc') document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+  else if (q.type === 'ox') { document.getElementById('btnO').disabled = true; document.getElementById('btnX').disabled = true; }
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= quizList.length) {
+    showResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ── 결과 화면 ──
+function showResult() {
+  clearInterval(timerInterval);
+  showScreen('resultScreen');
+
+  const sessionIdxs = [...new Set(quizList.map(q => q.session))];
+  let totalCorrect = 0, totalQ = 0;
+
+  if (!isWrongRetry) {
+    sessionIdxs.forEach(i => {
+      totalCorrect += scores[i] ? scores[i].correct : 0;
+      totalQ += scores[i] ? scores[i].total : 0;
+    });
+  } else {
+    totalQ = quizList.length;
+    totalCorrect = quizList.length - wrongItems.length;
+    if (totalCorrect < 0) totalCorrect = 0;
+  }
+
+  document.getElementById('resultSub').textContent = `${playerName}님 · 총 ${totalQ}문제 중 ${totalCorrect}문제 정답`;
+  document.getElementById('scoreNum').textContent = totalCorrect;
+  document.getElementById('scoreTotal').textContent = `/ ${totalQ}점`;
+
+  // 원형 게이지
+  const pct = totalQ > 0 ? totalCorrect / totalQ : 0;
+  const circ = 2 * Math.PI * 54;
+  setTimeout(() => {
+    document.getElementById('scoreCircle').style.strokeDashoffset = circ - pct * circ;
+  }, 100);
+
+  // 회차별 표
+  const tbody = document.getElementById('sessionResultBody');
+  tbody.innerHTML = '';
+  sessionIdxs.forEach(i => {
+    const s = scores[i] || { correct: 0, total: 0 };
+    const pctS = s.total > 0 ? Math.round(s.correct / s.total * 100) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${SESSION_NAMES[i].split(' — ')[0]}</td>
+      <td>${s.correct} / ${s.total}</td>
+      <td>${pctS}%<div class="bar-wrap"><div class="bar-fill" style="width:${pctS}%"></div></div></td>`;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('btnWrongOnly').style.display = wrongItems.length > 0 ? 'block' : 'none';
+  document.getElementById('wrongList').innerHTML = '';
+  document.getElementById('wrongList').className = 'wrong-list';
+}
+
+function toggleWrongList() {
+  const wl = document.getElementById('wrongList');
+  if (wl.classList.contains('show')) { wl.classList.remove('show'); return; }
+  if (wrongItems.length === 0) { alert('오답이 없어요! 완벽합니다 🎉'); return; }
+  wl.innerHTML = wrongItems.map(q => `
+    <div class="wrong-item">
+      <div class="wrong-q">Q${q.no}. ${q.q}</div>
+      <div class="wrong-ans">▶ 정답: ${q.type === 'mc' ? ['①','②','③','④'][q.answer] + ' ' + q.choices[q.answer] : q.answer}</div>
+      <div class="wrong-exp">💡 ${q.explain}</div>
+    </div>`).join('');
+  wl.classList.add('show');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>
