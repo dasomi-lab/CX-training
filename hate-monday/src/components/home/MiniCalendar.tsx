@@ -16,8 +16,8 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState<Date | null>(null);
 
-  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
-  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
+  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start, end });
 
   const deadlineDates = events
@@ -47,7 +47,7 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
 
       {/* Day labels */}
       <div className="grid grid-cols-7 text-center">
-        {['M','T','W','T','F','S','S'].map((d, i) => (
+        {['일','월','화','수','목','금','토'].map((d, i) => (
           <span key={i} className="text-[9px] text-text-secondary font-medium">{d}</span>
         ))}
       </div>

@@ -24,8 +24,8 @@ export default function CalendarPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const { events } = useDataStore();
 
-  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
-  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+  const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
+  const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start, end });
 
   const catMap = Object.fromEntries(mockCategories.map((c) => [c.id, c]));
@@ -62,7 +62,7 @@ export default function CalendarPage() {
 
       {/* Day headers */}
       <div className="grid grid-cols-7 mb-1">
-        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => (
+        {['일','월','화','수','목','금','토'].map((d) => (
           <div key={d} className="text-center text-[10px] font-semibold text-text-secondary py-1">{d}</div>
         ))}
       </div>

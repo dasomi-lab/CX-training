@@ -16,7 +16,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 pt-5 pb-2 shrink-0">
         <div>
-          <h1 className="text-lg font-bold text-text-primary leading-tight">Hate Monday</h1>
+          <h1 className="text-lg font-bold text-accent leading-tight">Hate Monday</h1>
           <p className="text-[11px] text-text-secondary">Make Monday lighter</p>
         </div>
         <AddEventFab />
@@ -27,22 +27,22 @@ export default function HomePage() {
         {/* KPI Cards */}
         <KpiGrid kpis={mockKpis} />
 
-        {/* Weekly Load Chart */}
+        {/* Mini Calendar (full width) */}
         <div className="bg-background rounded-[12px] border border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-3">
-          <p className="text-[11px] font-semibold text-text-secondary mb-1 uppercase tracking-wide">Weekly Load</p>
-          <div className="h-28">
-            <WeeklyLoadChart tasks={tasks} />
-          </div>
+          <MiniCalendar events={events} />
         </div>
 
-        {/* Progress + Mini Calendar side by side */}
+        {/* Progress + Weekly Load side by side */}
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-background rounded-[12px] border border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-3">
             <p className="text-[11px] font-semibold text-text-secondary mb-2 uppercase tracking-wide">Projects</p>
             <ProgressSection projects={mockProjects} categories={mockCategories} />
           </div>
           <div className="bg-background rounded-[12px] border border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-3">
-            <MiniCalendar events={events} />
+            <p className="text-[11px] font-semibold text-text-secondary mb-1 uppercase tracking-wide">Weekly Load</p>
+            <div className="h-28">
+              <WeeklyLoadChart tasks={tasks} />
+            </div>
           </div>
         </div>
       </div>
