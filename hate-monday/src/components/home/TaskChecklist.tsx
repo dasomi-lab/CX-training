@@ -17,23 +17,27 @@ export default function TaskChecklist({ tasks }: { tasks: Task[] }) {
     .slice(0, 5);
 
   if (upcoming.length === 0) {
-    return <p className="text-[11px] text-text-secondary text-center py-2">할 일이 없습니다 🎉</p>;
+    return <p className="text-[11px] text-text-secondary text-center py-3">할 일 없음 🎉</p>;
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {upcoming.map((task) => {
         const proj = task.projectId ? projMap[task.projectId] : null;
         const cat = proj ? catMap[proj.categoryId] : null;
         const daysLeft = differenceInDays(parseISO(task.dueDate), new Date());
-        const urgent = daysLeft === 0;
+        const isUrgent = daysLeft === 0;
+        const isSoon = daysLeft <= 2;
 
         return (
           <div key={task.id} className="flex items-center gap-2">
             <button
               onClick={() => toggleTask(task.id)}
-              className="w-4 h-4 rounded-full border-2 border-border hover:border-accent flex items-center justify-center shrink-0 transition-colors"
-              style={{ minWidth: 16, minHeight: 16 }}
+              className="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors hover:border-accent"
+              style={{
+                borderColor: isUrgent ? '#D94040' : isSoon ? '#FF9800' : '#EBEBEB',
+                minWidth: 16, minHeight: 16,
+              }}
             />
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-medium text-text-primary truncate">{task.title}</p>
@@ -41,8 +45,15 @@ export default function TaskChecklist({ tasks }: { tasks: Task[] }) {
                 <span className="text-[9px] font-medium" style={{ color: cat.color }}>{cat.name}</span>
               )}
             </div>
-            <span className={`text-[10px] font-bold shrink-0 ${urgent ? 'text-accent' : 'text-text-secondary'}`}>
-              {urgent ? 'D-day' : `D-${daysLeft}`}
+            {/* D-day 강조 */}
+            <span
+              className="text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded-full"
+              style={{
+                backgroundColor: isUrgent ? '#D9404018' : isSoon ? '#FF980018' : 'transparent',
+                color: isUrgent ? '#D94040' : isSoon ? '#FF9800' : '#6B6B6B',
+              }}
+            >
+              {isUrgent ? 'D-day' : `D-${daysLeft}`}
             </span>
           </div>
         );

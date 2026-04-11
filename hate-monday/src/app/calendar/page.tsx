@@ -22,7 +22,7 @@ const EVENT_TYPE_COLOR: Record<string, string> = {
 export default function CalendarPage() {
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState<string | null>(null);
-  const { events } = useDataStore();
+  const { events, tasks } = useDataStore();
 
   const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
   const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
@@ -31,9 +31,22 @@ export default function CalendarPage() {
   const catMap = Object.fromEntries(mockCategories.map((c) => [c.id, c]));
   const projMap = Object.fromEntries(mockProjects.map((p) => [p.id, p]));
 
+  // 태스크도 캘린더에 표시 (마감일 기준)
+  const taskEvents = tasks
+    .filter((t) => t.status === 'todo')
+    .map((t) => ({
+      id: `task-${t.id}`,
+      projectId: t.projectId,
+      title: `✓ ${t.title}`,
+      date: t.dueDate,
+      type: 'general' as const,
+    }));
+
+  const allEvents = [...events, ...taskEvents];
+
   const eventsForDate = (dateStr: string) =>
-    events.filter((e) => {
-      if (e.endDate) return dateStr >= e.date && dateStr <= e.endDate;
+    allEvents.filter((e) => {
+      if ('endDate' in e && e.endDate) return dateStr >= e.date && dateStr <= (e.endDate as string);
       return e.date === dateStr;
     });
 
@@ -134,7 +147,7 @@ export default function CalendarPage() {
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-text-primary">{ev.title}</p>
-                    {ev.time && <p className="text-[10px] text-text-secondary">{ev.time}</p>}
+                    {'time' in ev && ev.time && <p className="text-[10px] text-text-secondary">{ev.time}</p>}
                   </div>
                   <span className="text-[10px] text-text-secondary capitalize">{ev.type}</span>
                 </div>

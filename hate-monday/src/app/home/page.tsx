@@ -35,7 +35,7 @@ export default function HomePage() {
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-background rounded-[12px] border border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-3">
             <p className="text-[11px] font-semibold text-text-secondary mb-2 uppercase tracking-wide">Projects</p>
-            <ProgressSection projects={mockProjects} categories={mockCategories} />
+            <ProgressSection projects={mockProjects} categories={mockCategories} tasks={tasks} />
           </div>
           <div className="bg-background rounded-[12px] border border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-3">
             <p className="text-[11px] font-semibold text-text-secondary mb-2 uppercase tracking-wide">할 일</p>
