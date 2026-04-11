@@ -12,7 +12,7 @@ export default function HomePage() {
   const { tasks, events } = useDataStore();
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-64px)] overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-4 pt-5 pb-2 shrink-0">
         <div>
