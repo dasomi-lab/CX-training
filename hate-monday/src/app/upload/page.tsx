@@ -17,11 +17,10 @@ interface PendingItem {
 }
 
 const EVENT_TYPES: Array<{ value: EventType | 'task'; label: string }> = [
-  { value: 'task',      label: 'Task' },
-  { value: 'deadline',  label: 'Deadline' },
-  { value: 'meeting',   label: 'Meeting' },
-  { value: 'milestone', label: 'Milestone' },
-  { value: 'general',   label: 'General' },
+  { value: 'task',     label: '할 일' },
+  { value: 'deadline', label: '마감' },
+  { value: 'meeting',  label: '회의' },
+  { value: 'general',  label: '일정' },
 ];
 
 const today = new Date().toISOString().split('T')[0];
@@ -138,12 +137,12 @@ export default function UploadPage() {
         {/* Type */}
         <div>
           <label className="text-xs font-semibold text-text-secondary mb-1 block">유형</label>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {EVENT_TYPES.map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => setType(value)}
-                className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+                className={`py-1.5 text-xs font-medium rounded-full border transition-colors text-center ${
                   type === value
                     ? 'bg-accent text-white border-accent'
                     : 'bg-background border-border text-text-secondary hover:border-accent hover:text-accent'
