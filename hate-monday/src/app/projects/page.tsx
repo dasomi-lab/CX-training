@@ -1,14 +1,16 @@
-import Link from 'next/link';
+'use client';
+
 import { Plus } from 'lucide-react';
-import { mockProjects, mockCategories, mockTasks } from '@/lib/mockData';
-import ProjectCard from '@/components/projects/ProjectCard';
+import { mockCategories, mockTasks } from '@/lib/mockData';
+import SwipeableProjectCard from '@/components/projects/SwipeableProjectCard';
+import { useDataStore } from '@/store/useDataStore';
 
 export default function ProjectsPage() {
-  const catMap = Object.fromEntries(mockCategories.map((c) => [c.id, c]));
+  const { projects } = useDataStore();
 
   const grouped = mockCategories.map((cat) => ({
     cat,
-    projects: mockProjects.filter((p) => p.categoryId === cat.id),
+    projects: projects.filter((p) => p.categoryId === cat.id),
   }));
 
   return (
@@ -21,22 +23,22 @@ export default function ProjectsPage() {
         </button>
       </div>
 
+      {/* 스와이프 안내 */}
+      <p className="text-[11px] text-text-secondary mb-4">← 카드를 왼쪽으로 밀면 일정 추가 · 삭제</p>
+
       <div className="flex flex-col gap-5">
-        {grouped.map(({ cat, projects }) => (
+        {grouped.map(({ cat, projects }) =>
           projects.length === 0 ? null : (
             <section key={cat.id}>
               <div className="flex items-center gap-2 mb-2">
-                <span
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: cat.color }}
-                />
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
                 <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
                   {cat.name}
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-3">
                 {projects.map((project) => (
-                  <ProjectCard
+                  <SwipeableProjectCard
                     key={project.id}
                     project={project}
                     category={cat}
@@ -46,7 +48,13 @@ export default function ProjectsPage() {
               </div>
             </section>
           )
-        ))}
+        )}
+
+        {projects.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-48 text-text-secondary">
+            <p className="text-sm">프로젝트가 없습니다.</p>
+          </div>
+        )}
       </div>
     </div>
   );
