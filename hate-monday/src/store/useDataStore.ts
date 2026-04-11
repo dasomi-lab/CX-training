@@ -1,24 +1,32 @@
 'use client';
 
 import { create } from 'zustand';
-import { Task, CalendarEvent } from '@/types';
-import { mockTasks, mockEvents, mockProjects } from '@/lib/mockData';
-import { Project } from '@/types';
+import { Task, CalendarEvent, Project, Contact } from '@/types';
+import { mockTasks, mockEvents, mockProjects, mockContacts } from '@/lib/mockData';
 
 interface DataState {
   tasks: Task[];
   events: CalendarEvent[];
   projects: Project[];
+  contacts: Contact[];
+
   toggleTask: (id: string) => void;
-  addEvent: (event: CalendarEvent) => void;
   addTask: (task: Task) => void;
+  addEvent: (event: CalendarEvent) => void;
+
+  addProject: (project: Project) => void;
   deleteProject: (id: string) => void;
+
+  addContact: (contact: Contact) => void;
+  updateContact: (contact: Contact) => void;
+  deleteContact: (id: string) => void;
 }
 
 export const useDataStore = create<DataState>((set) => ({
   tasks: mockTasks,
   events: mockEvents,
   projects: mockProjects,
+  contacts: mockContacts,
 
   toggleTask: (id) =>
     set((state) => ({
@@ -27,15 +35,29 @@ export const useDataStore = create<DataState>((set) => ({
       ),
     })),
 
+  addTask: (task) =>
+    set((state) => ({ tasks: [...state.tasks, task] })),
+
   addEvent: (event) =>
     set((state) => ({ events: [...state.events, event] })),
 
-  addTask: (task) =>
-    set((state) => ({ tasks: [...state.tasks, task] })),
+  addProject: (project) =>
+    set((state) => ({ projects: [...state.projects, project] })),
 
   deleteProject: (id) =>
     set((state) => ({
       projects: state.projects.filter((p) => p.id !== id),
       tasks: state.tasks.filter((t) => t.projectId !== id),
     })),
+
+  addContact: (contact) =>
+    set((state) => ({ contacts: [...state.contacts, contact] })),
+
+  updateContact: (contact) =>
+    set((state) => ({
+      contacts: state.contacts.map((c) => (c.id === contact.id ? contact : c)),
+    })),
+
+  deleteContact: (id) =>
+    set((state) => ({ contacts: state.contacts.filter((c) => c.id !== id) })),
 }));
