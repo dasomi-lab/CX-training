@@ -20,6 +20,7 @@ interface DataState {
   addContact: (contact: Contact) => void;
   updateContact: (contact: Contact) => void;
   deleteContact: (id: string) => void;
+  toggleFavorite: (id: string) => void;
 }
 
 export const useDataStore = create<DataState>((set) => ({
@@ -60,4 +61,11 @@ export const useDataStore = create<DataState>((set) => ({
 
   deleteContact: (id) =>
     set((state) => ({ contacts: state.contacts.filter((c) => c.id !== id) })),
+
+  toggleFavorite: (id) =>
+    set((state) => ({
+      contacts: state.contacts.map((c) =>
+        c.id === id ? { ...c, favorite: !c.favorite } : c
+      ),
+    })),
 }));

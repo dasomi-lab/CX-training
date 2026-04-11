@@ -11,6 +11,7 @@ interface PendingItem {
   id: string;
   title: string;
   date: string;
+  endDate: string;
   type: EventType | 'task';
   projectId: string;
 }
@@ -31,6 +32,7 @@ export default function UploadPage() {
 
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(today);
+  const [endDate, setEndDate] = useState('');
   const [type, setType] = useState<EventType | 'task'>('task');
   const [projectId, setProjectId] = useState('');
   const [items, setItems] = useState<PendingItem[]>([]);
@@ -40,10 +42,11 @@ export default function UploadPage() {
     if (!title.trim() || !date) return;
     setItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), title: title.trim(), date, type, projectId },
+      { id: crypto.randomUUID(), title: title.trim(), date, endDate, type, projectId },
     ]);
     setTitle('');
     setDate(today);
+    setEndDate('');
     setType('task');
     setProjectId('');
   };
@@ -57,7 +60,7 @@ export default function UploadPage() {
           id: crypto.randomUUID(),
           projectId: item.projectId || null,
           title: item.title,
-          dueDate: item.date,
+          dueDate: item.endDate || item.date,
           status: 'todo',
           priority: 'medium',
         };
@@ -68,6 +71,7 @@ export default function UploadPage() {
           projectId: item.projectId || null,
           title: item.title,
           date: item.date,
+          endDate: item.endDate || undefined,
           type: item.type as EventType,
         };
         addEvent(event);
@@ -109,15 +113,27 @@ export default function UploadPage() {
           />
         </div>
 
-        {/* Date */}
-        <div>
-          <label className="text-xs font-semibold text-text-secondary mb-1 block">날짜</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full text-sm bg-background border border-border rounded-[8px] px-3 py-2 text-text-primary focus:outline-none focus:border-accent"
-          />
+        {/* 날짜 범위 */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs font-semibold text-text-secondary mb-1 block">시작일</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full text-sm bg-background border border-border rounded-[8px] px-2 py-2 text-text-primary focus:outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-text-secondary mb-1 block">종료일 (선택)</label>
+            <input
+              type="date"
+              value={endDate}
+              min={date}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full text-sm bg-background border border-border rounded-[8px] px-2 py-2 text-text-primary focus:outline-none focus:border-accent"
+            />
+          </div>
         </div>
 
         {/* Type */}
@@ -176,7 +192,7 @@ export default function UploadPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-text-primary truncate">{item.title}</p>
                     <p className="text-[10px] text-text-secondary">
-                      {item.date} · {item.type}{proj ? ` · ${proj.name.slice(0, 15)}` : ''}
+                      {item.date}{item.endDate ? ` ~ ${item.endDate}` : ''} · {item.type}{proj ? ` · ${proj.name.slice(0, 12)}` : ''}
                     </p>
                   </div>
                   <button onClick={() => remove(item.id)} className="text-text-secondary hover:text-accent">

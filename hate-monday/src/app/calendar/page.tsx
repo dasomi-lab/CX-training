@@ -32,7 +32,10 @@ export default function CalendarPage() {
   const projMap = Object.fromEntries(mockProjects.map((p) => [p.id, p]));
 
   const eventsForDate = (dateStr: string) =>
-    events.filter((e) => e.date === dateStr);
+    events.filter((e) => {
+      if (e.endDate) return dateStr >= e.date && dateStr <= e.endDate;
+      return e.date === dateStr;
+    });
 
   const selectedEvents = selected ? eventsForDate(selected) : [];
 

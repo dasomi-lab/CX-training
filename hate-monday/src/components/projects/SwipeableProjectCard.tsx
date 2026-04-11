@@ -118,7 +118,7 @@ export default function SwipeableProjectCard({ project, category, tasks }: Swipe
       >
         <button
           onClick={handleAddSchedule}
-          className="flex-1 flex flex-col items-center justify-center gap-1 bg-[#D0D0D0] text-[#6B6B6B] text-[11px] font-semibold"
+          className="flex-1 flex flex-col items-center justify-center gap-1 bg-[#D0D0D0] text-white text-[11px] font-semibold"
         >
           <CalendarPlus size={18} />
           일정 추가

@@ -15,16 +15,16 @@ export interface Project {
   categoryId: string;
   name: string;
   status: ProjectStatus;
-  progress: number; // 0–100
-  startDate: string; // ISO date
-  endDate: string;   // ISO date
+  progress: number;
+  startDate: string;
+  endDate: string;
 }
 
 export interface Task {
   id: string;
   projectId: string | null;
   title: string;
-  dueDate: string; // ISO date
+  dueDate: string;
   status: TaskStatus;
   priority: TaskPriority;
   assignedTo?: string;
@@ -34,7 +34,8 @@ export interface CalendarEvent {
   id: string;
   projectId: string | null;
   title: string;
-  date: string; // ISO date YYYY-MM-DD
+  date: string;      // 시작일 YYYY-MM-DD
+  endDate?: string;  // 종료일 YYYY-MM-DD (선택)
   time?: string;
   type: EventType;
 }
@@ -56,4 +57,5 @@ export interface Contact {
   phone?: string;
   email?: string;
   note?: string;
+  favorite?: boolean;
 }
