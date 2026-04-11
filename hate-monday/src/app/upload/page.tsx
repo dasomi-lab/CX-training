@@ -114,26 +114,25 @@ export default function UploadPage() {
         </div>
 
         {/* 날짜 범위 */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs font-semibold text-text-secondary mb-1 block">시작일</label>
+        <div>
+          <label className="text-xs font-semibold text-text-secondary mb-1 block">날짜</label>
+          <div className="flex items-center gap-2">
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full text-sm bg-background border border-border rounded-[8px] px-2 py-2 text-text-primary focus:outline-none focus:border-accent"
+              className="flex-1 text-sm bg-background border border-border rounded-[8px] px-3 py-2 text-text-primary focus:outline-none focus:border-accent"
             />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-text-secondary mb-1 block">종료일 (선택)</label>
+            <span className="text-text-secondary text-sm shrink-0">~</span>
             <input
               type="date"
               value={endDate}
               min={date}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full text-sm bg-background border border-border rounded-[8px] px-2 py-2 text-text-primary focus:outline-none focus:border-accent"
+              className="flex-1 text-sm bg-background border border-border rounded-[8px] px-3 py-2 text-text-primary focus:outline-none focus:border-accent"
             />
           </div>
+          <p className="text-[10px] text-text-secondary mt-1">종료일은 선택사항이에요</p>
         </div>
 
         {/* Type */}
