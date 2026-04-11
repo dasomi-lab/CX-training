@@ -1,0 +1,58 @@
+import { Project } from '@/types';
+
+export const mockProjects: Project[] = [
+  {
+    id: 'proj-1',
+    categoryId: 'cat-1',
+    name: '중소기업 R&D 지원 신청',
+    status: 'active',
+    progress: 82,
+    startDate: '2026-01-15',
+    endDate: '2026-04-30',
+  },
+  {
+    id: 'proj-2',
+    categoryId: 'cat-1',
+    name: '스마트팩토리 보조금 신청',
+    status: 'active',
+    progress: 45,
+    startDate: '2026-02-01',
+    endDate: '2026-05-31',
+  },
+  {
+    id: 'proj-3',
+    categoryId: 'cat-2',
+    name: '린클 Pro 2.0 출시',
+    status: 'active',
+    progress: 68,
+    startDate: '2026-01-01',
+    endDate: '2026-06-30',
+  },
+  {
+    id: 'proj-4',
+    categoryId: 'cat-2',
+    name: '신규 패키징 디자인',
+    status: 'active',
+    progress: 30,
+    startDate: '2026-03-01',
+    endDate: '2026-05-15',
+  },
+  {
+    id: 'proj-5',
+    categoryId: 'cat-3',
+    name: 'CS 대응 프로세스 개선',
+    status: 'active',
+    progress: 91,
+    startDate: '2026-01-10',
+    endDate: '2026-04-20',
+  },
+  {
+    id: 'proj-6',
+    categoryId: 'cat-3',
+    name: '고객 만족도 조사 2분기',
+    status: 'on_hold',
+    progress: 20,
+    startDate: '2026-04-01',
+    endDate: '2026-06-30',
+  },
+];
