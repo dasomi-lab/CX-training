@@ -175,15 +175,15 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
             return (
               <div
                 key={dateStr}
-                className={`flex items-center gap-3 bg-background rounded-[10px] px-3 py-2 transition-opacity ${past ? 'opacity-40' : ''}`}
+                className={`flex items-center gap-3 rounded-[10px] px-3 py-2 border transition-opacity ${past ? 'opacity-65 bg-background border-border' : 'bg-white border-border shadow-sm'}`}
               >
                 {/* Day label */}
-                <span className={`text-[11px] font-bold w-9 shrink-0 ${past ? 'text-text-secondary' : 'text-text-primary'}`}>
+                <span className={`text-[12px] font-bold w-9 shrink-0 ${past ? 'text-text-secondary' : 'text-text-primary'}`}>
                   {DAY_KO[day.getDay()]} {format(day, 'd')}
                 </span>
 
                 {total === 0 ? (
-                  <span className="text-[12px] text-text-secondary">여유 ☀️</span>
+                  <span className="text-[12px] text-text-secondary font-medium">여유 ☀️</span>
                 ) : primary ? (
                   <>
                     {/* Colored left indicator dot */}
