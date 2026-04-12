@@ -94,19 +94,22 @@ export default function UploadPage() {
       let fileId: string | null = null;
 
       if (supabaseReady) {
-        const path = `${Date.now()}_${file.name}`;
-        const { error: storageErr } = await supabase.storage.from('uploads').upload(path, file);
-        if (storageErr) throw new Error(`Storage 오류: ${storageErr.message}`);
-
-        const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
-
-        const { data: fileMeta, error: dbErr } = await supabase
-          .from('files')
-          .insert({ name: file.name, storage_path: path, url: urlData.publicUrl, size: file.size, mime_type: file.type || 'text/plain' })
-          .select('id')
-          .single();
-        if (dbErr) throw new Error(`DB 오류: ${dbErr.message}`);
-        fileId = fileMeta?.id ?? null;
+        try {
+          const path = `${Date.now()}_${file.name}`;
+          const { error: storageErr } = await supabase.storage.from('uploads').upload(path, file);
+          if (!storageErr) {
+            const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
+            const { data: fileMeta } = await supabase
+              .from('files')
+              .insert({ name: file.name, storage_path: path, url: urlData.publicUrl, size: file.size, mime_type: file.type || 'text/plain' })
+              .select('id')
+              .single();
+            fileId = fileMeta?.id ?? null;
+          }
+        } catch {
+          // Supabase 연결 불가 — Storage 저장 건너뜀, 추출은 계속 진행
+          console.warn('Supabase Storage unreachable, skipping upload');
+        }
       }
 
       let body: Record<string, string>;

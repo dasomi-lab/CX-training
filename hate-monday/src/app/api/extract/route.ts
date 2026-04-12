@@ -75,25 +75,30 @@ export async function POST(req: Request) {
 
   if (rawItems.length === 0) return NextResponse.json({ items: [] });
 
-  /* ── Supabase extracted_items 저장 ── */
+  const memoryItems = rawItems.map((i) => ({
+    ...i,
+    id:        crypto.randomUUID(),
+    file_id:   body.file_id ?? null,
+    confirmed: false,
+  }));
+
+  /* ── Supabase extracted_items 저장 (실패 시 in-memory로 fallback) ── */
   if (supabase) {
-    const rows = rawItems.map((i) => ({
-      file_id:   body.file_id ?? null,
-      title:     i.title || '(제목 없음)',
-      date:      i.date,
-      type:      i.type || 'general',
-      confirmed: false,
-    }));
-    const { data, error } = await supabase.from('extracted_items').insert(rows).select();
-    if (error) {
-      console.error('extracted_items insert error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    try {
+      const rows = rawItems.map((i) => ({
+        file_id:   body.file_id ?? null,
+        title:     i.title || '(제목 없음)',
+        date:      i.date,
+        type:      i.type || 'general',
+        confirmed: false,
+      }));
+      const { data, error } = await supabase.from('extracted_items').insert(rows).select();
+      if (!error && data) return NextResponse.json({ items: data });
+      console.warn('Supabase insert failed, using in-memory:', error?.message);
+    } catch (err) {
+      console.warn('Supabase unreachable, using in-memory:', err);
     }
-    return NextResponse.json({ items: data });
   }
 
-  /* Supabase 미설정 시 메모리 결과만 반환 */
-  return NextResponse.json({
-    items: rawItems.map((i) => ({ ...i, id: crypto.randomUUID(), file_id: body.file_id ?? null, confirmed: false })),
-  });
+  return NextResponse.json({ items: memoryItems });
 }
