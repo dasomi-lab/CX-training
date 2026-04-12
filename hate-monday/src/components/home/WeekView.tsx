@@ -70,6 +70,13 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
   /* ── All 7 days including today ── */
   const otherDays = days;
 
+  /* ── Weekly progress ── */
+  const weekDateStrs  = new Set(days.map((d) => format(d, 'yyyy-MM-dd')));
+  const weekTasks     = tasks.filter((t) => weekDateStrs.has(t.dueDate));
+  const weekDone      = weekTasks.filter((t) => t.status === 'done').length;
+  const weekTotal     = weekTasks.length;
+  const weekPct       = weekTotal > 0 ? Math.round((weekDone / weekTotal) * 100) : 0;
+
   return (
     <div className="flex-1 flex flex-col gap-3 min-h-0">
 
@@ -151,16 +158,35 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
             {isThisWeek && (
               <span className="text-[9px] bg-accent/10 text-accent px-1.5 py-0.5 rounded-full font-bold">이번 주</span>
             )}
-            {format(days[0], 'M.d')} — {format(days[6], 'M.d')}
+            <span>{format(days[0], 'M.d')} — {format(days[6], 'M.d')}</span>
             {isThisWeek && (
-              <span className="text-[9px] bg-accent text-white px-1.5 py-0.5 rounded-full font-bold">
-                오늘 {format(new Date(), 'M.d')}
-              </span>
+              <span className="text-accent font-bold text-[11px]">· 오늘 {format(new Date(), 'd')}일</span>
             )}
           </button>
           <button onClick={() => setWeekStart((w) => addWeeks(w, 1))} className="p-1 text-text-secondary hover:text-text-primary">
             <ChevronRight size={15} />
           </button>
+        </div>
+
+        {/* ── Weekly progress bar ── */}
+        <div className="mb-3 shrink-0">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-[10px] text-text-secondary font-medium">
+              {isThisWeek ? '이번 주 할 일' : '해당 주 할 일'}
+            </span>
+            <span className="text-[10px] font-bold text-text-primary">
+              {weekTotal === 0 ? '없음' : `${weekDone}/${weekTotal} · ${weekPct}%`}
+            </span>
+          </div>
+          <div className="h-1.5 bg-border rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${weekPct}%`,
+                backgroundColor: weekPct >= 80 ? '#4CAF50' : weekPct >= 40 ? '#FF9800' : '#D94040',
+              }}
+            />
+          </div>
         </div>
 
         {/* Day rows — spread evenly to fill available space */}
