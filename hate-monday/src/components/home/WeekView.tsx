@@ -67,15 +67,14 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
   const todayVisible = todayAll.slice(0, 4);
   const todayExtra   = todayAll.length - todayVisible.length;
 
-  /* ── Other days ── */
-  const otherDays = isThisWeek ? days.filter((d) => !isToday(d)) : days;
+  /* ── Other days (always exclude today from week strip) ── */
+  const otherDays = days.filter((d) => !isToday(d));
 
   return (
     <div className="flex-1 flex flex-col gap-3 min-h-0">
 
-      {/* ── Today card ── */}
-      {isThisWeek && (
-        <div className="bg-accent/5 border border-accent/20 rounded-[16px] px-4 py-4 shrink-0">
+      {/* ── Today card — always visible ── */}
+      <div className="bg-accent/5 border border-accent/20 rounded-[16px] px-4 py-4 shrink-0">
           <p className="text-[12px] font-bold text-accent mb-3">
             오늘 &middot; {DAY_KO[new Date().getDay()]}요일&nbsp;{format(new Date(), 'M월 d일')}
           </p>
@@ -144,7 +143,6 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
             </div>
           )}
         </div>
-      )}
 
       {/* ── Week strip ── */}
       <div className="flex-1 flex flex-col bg-surface rounded-[16px] px-4 py-4 min-h-0">
