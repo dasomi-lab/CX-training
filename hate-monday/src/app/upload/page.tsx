@@ -73,11 +73,20 @@ function extractFromText(text: string): PendingItem[] {
   return items.slice(0, 15);
 }
 
-/** PDF에서 텍스트 추출 (pdfjs-dist, CDN worker) */
+/** FileReader로 파일을 텍스트로 읽기 (모바일 호환) */
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = (e) => resolve((e.target?.result as string) ?? '');
+    reader.onerror = () => reject(new Error('파일 읽기 실패'));
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+/** PDF에서 텍스트 추출 (pdfjs-dist, public worker) */
 async function extractTextFromPdf(file: File): Promise<string> {
   const pdfjsLib = await import('pdfjs-dist');
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -130,7 +139,7 @@ export default function UploadPage() {
       if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
         text = await extractTextFromPdf(file);
       } else {
-        text = await file.text();
+        text = await readFileAsText(file);
       }
 
       const found = extractFromText(text);
