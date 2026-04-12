@@ -67,8 +67,8 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
   const todayVisible = todayAll.slice(0, 4);
   const todayExtra   = todayAll.length - todayVisible.length;
 
-  /* ── Other days (always exclude today from week strip) ── */
-  const otherDays = days.filter((d) => !isToday(d));
+  /* ── All 7 days including today ── */
+  const otherDays = days;
 
   return (
     <div className="flex-1 flex flex-col gap-3 min-h-0">
@@ -152,6 +152,11 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
               <span className="text-[9px] bg-accent/10 text-accent px-1.5 py-0.5 rounded-full font-bold">이번 주</span>
             )}
             {format(days[0], 'M.d')} — {format(days[6], 'M.d')}
+            {isThisWeek && (
+              <span className="text-[9px] bg-accent text-white px-1.5 py-0.5 rounded-full font-bold">
+                오늘 {format(new Date(), 'M.d')}
+              </span>
+            )}
           </button>
           <button onClick={() => setWeekStart((w) => addWeeks(w, 1))} className="p-1 text-text-secondary hover:text-text-primary">
             <ChevronRight size={15} />
@@ -161,8 +166,9 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
         {/* Day rows — spread evenly to fill available space */}
         <div className="flex-1 flex flex-col justify-between min-h-0">
           {otherDays.map((day) => {
-            const dateStr = format(day, 'yyyy-MM-dd');
-            const past    = isPast(day) && !isToday(day);
+            const dateStr  = format(day, 'yyyy-MM-dd');
+            const today    = isToday(day);
+            const past     = isPast(day) && !today;
             const { evs, tsks } = getItems(dateStr);
             const total   = evs.length + tsks.length;
             const primary = evs[0] ?? tsks[0] ?? null;
@@ -175,10 +181,14 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
             return (
               <div
                 key={dateStr}
-                className={`flex items-center gap-3 rounded-[10px] px-3 py-2 border transition-opacity ${past ? 'opacity-65 bg-background border-border' : 'bg-white border-border shadow-sm'}`}
+                className={`flex items-center gap-3 rounded-[10px] px-3 py-2 border transition-opacity ${
+                  today ? 'bg-accent/5 border-accent/40 shadow-sm'
+                  : past ? 'opacity-65 bg-background border-border'
+                  : 'bg-white border-border shadow-sm'
+                }`}
               >
                 {/* Day label */}
-                <span className={`text-[12px] font-bold w-9 shrink-0 ${past ? 'text-text-secondary' : 'text-text-primary'}`}>
+                <span className={`text-[12px] font-bold w-9 shrink-0 ${today ? 'text-accent' : past ? 'text-text-secondary' : 'text-text-primary'}`}>
                   {DAY_KO[day.getDay()]} {format(day, 'd')}
                 </span>
 
