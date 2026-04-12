@@ -212,19 +212,39 @@ export default function UploadPage() {
         <div>
           <p className="text-xs font-bold text-text-primary mb-0.5">파일에서 불러오기</p>
           <p className="text-[10px] text-text-secondary mb-2.5">AI가 날짜를 자동 인식합니다</p>
-          <div className="grid grid-cols-2 gap-2">
-            {/* 사진 선택 — image/* 단독으로 iOS 사진첩 열림 */}
-            <label className="flex items-center justify-center gap-1.5 bg-accent text-white text-xs font-semibold px-3 py-2.5 rounded-[10px] cursor-pointer hover:bg-accent-hover transition-colors">
+          <div className="grid grid-cols-2 gap-2 relative">
+            {/* 사진 선택 — image/* only → iOS 사진첩 열림 */}
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="flex items-center justify-center gap-1.5 bg-accent text-white text-xs font-semibold px-3 py-2.5 rounded-[10px]"
+            >
               <span className="text-base leading-none">📷</span>
               사진 추가
-              <input ref={photoInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
-            </label>
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFile}
+              style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+            />
             {/* 파일 선택 — TXT / MD / PDF */}
-            <label className="flex items-center justify-center gap-1.5 bg-surface border border-border text-text-primary text-xs font-semibold px-3 py-2.5 rounded-[10px] cursor-pointer hover:border-accent hover:text-accent transition-colors">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center justify-center gap-1.5 bg-surface border border-border text-text-primary text-xs font-semibold px-3 py-2.5 rounded-[10px]"
+            >
               <Upload size={13} />
               파일 선택
-              <input ref={fileInputRef} type="file" accept=".txt,.md,.pdf" onChange={handleFile} className="hidden" />
-            </label>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.md,.pdf"
+              onChange={handleFile}
+              style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+            />
           </div>
           <p className="text-[10px] text-text-secondary mt-1.5">TXT · MD · PDF · JPG · PNG 지원</p>
         </div>
