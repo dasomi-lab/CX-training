@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { Task, CalendarEvent, Project, Contact } from '@/types';
 import { mockTasks, mockEvents, mockProjects, mockContacts } from '@/lib/mockData';
 
@@ -23,7 +24,9 @@ interface DataState {
   toggleFavorite: (id: string) => void;
 }
 
-export const useDataStore = create<DataState>((set) => ({
+export const useDataStore = create<DataState>()(
+  persist(
+  (set) => ({
   tasks: mockTasks,
   events: mockEvents,
   projects: mockProjects,
@@ -68,4 +71,6 @@ export const useDataStore = create<DataState>((set) => ({
         c.id === id ? { ...c, favorite: !c.favorite } : c
       ),
     })),
-}));
+  }),
+  { name: 'hate-monday-data' }
+));
