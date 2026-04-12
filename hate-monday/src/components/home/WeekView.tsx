@@ -6,8 +6,9 @@ import {
   startOfWeek, endOfWeek, eachDayOfInterval,
   addWeeks, subWeeks, parseISO, differenceInDays,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { CalendarEvent, Task } from '@/types';
+import { useDataStore } from '@/store/useDataStore';
 
 const DAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -39,52 +40,64 @@ interface WeekViewProps {
 }
 
 export default function WeekView({ events, tasks }: WeekViewProps) {
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), MON_START));
+  const { toggleTask } = useDataStore();
+  const [weekStart,  setWeekStart]  = useState(() => startOfWeek(new Date(), MON_START));
+  const [completing, setCompleting] = useState<Set<string>>(new Set());
 
-  const days        = eachDayOfInterval({ start: weekStart, end: endOfWeek(weekStart, MON_START) });
-  const isThisWeek  = weekKey(weekStart) === weekKey(new Date());
+  const days       = eachDayOfInterval({ start: weekStart, end: endOfWeek(weekStart, MON_START) });
+  const isThisWeek = weekKey(weekStart) === weekKey(new Date());
+
+  const handleCheck = (id: string) => {
+    setCompleting((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      toggleTask(id);
+      setCompleting((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    }, 550);
+  };
 
   const getItems = (dateStr: string) => ({
-    evs:   events.filter((e) => e.date === dateStr),
-    tskts: tasks.filter((t) => t.dueDate === dateStr && t.status === 'todo'),
+    evs:  events.filter((e) => e.date === dateStr),
+    tsks: tasks.filter((t) => t.dueDate === dateStr && t.status === 'todo'),
   });
 
-  /* ── Today card data ── */
-  const todayStr              = format(new Date(), 'yyyy-MM-dd');
-  const { evs: todayEvs, tskts: todayTasks } = getItems(todayStr);
-  const todayAll              = [...todayEvs, ...todayTasks];
-  const todayVisible          = todayAll.slice(0, 4);
-  const todayExtra            = todayAll.length - todayVisible.length;
+  /* ── Today ── */
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const { evs: todayEvs, tsks: todayTasks } = getItems(todayStr);
+  const todayAll     = [...todayEvs, ...todayTasks];
+  const todayVisible = todayAll.slice(0, 4);
+  const todayExtra   = todayAll.length - todayVisible.length;
 
-  /* ── Other days (exclude today when viewing this week) ── */
+  /* ── Other days ── */
   const otherDays = isThisWeek ? days.filter((d) => !isToday(d)) : days;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex-1 flex flex-col gap-3 min-h-0">
 
-      {/* ── Today card (only shown when on current week) ── */}
+      {/* ── Today card ── */}
       {isThisWeek && (
-        <div className="bg-accent/5 border border-accent/20 rounded-[14px] px-3.5 pt-3 pb-3">
-          <p className="text-[11px] font-bold text-accent mb-2.5">
-            오늘 · {DAY_KO[new Date().getDay()]}요일&nbsp;{format(new Date(), 'M월 d일')}
+        <div className="bg-accent/5 border border-accent/20 rounded-[16px] px-4 py-4 shrink-0">
+          <p className="text-[12px] font-bold text-accent mb-3">
+            오늘 &middot; {DAY_KO[new Date().getDay()]}요일&nbsp;{format(new Date(), 'M월 d일')}
           </p>
 
           {todayAll.length === 0 ? (
-            <p className="text-[12px] text-text-secondary">오늘 일정이 없어요 ☀️</p>
+            <p className="text-[13px] text-text-secondary">오늘 일정이 없어요 ☀️</p>
           ) : (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2.5">
               {todayVisible.map((item) => {
                 /* CalendarEvent */
                 if ('type' in item) {
                   const ev    = item as CalendarEvent;
                   const color = TYPE_COLOR[ev.type] ?? '#9CA3AF';
                   return (
-                    <div key={ev.id} className="flex items-center gap-2 min-w-0">
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                      <span className="text-[12px] text-text-primary flex-1 truncate">{ev.title}</span>
-                      {ev.time && <span className="text-[10px] text-text-secondary shrink-0">{ev.time}</span>}
+                    <div key={ev.id} className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-5 h-5 shrink-0 flex items-center justify-center">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                      </span>
+                      <span className="text-[13px] text-text-primary flex-1 truncate">{ev.title}</span>
+                      {ev.time && <span className="text-[11px] text-text-secondary shrink-0">{ev.time}</span>}
                       <span
-                        className="text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0"
+                        className="text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0"
                         style={{ backgroundColor: color + '20', color }}
                       >
                         {TYPE_LABEL[ev.type]}
@@ -92,23 +105,41 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
                     </div>
                   );
                 }
+
                 /* Task */
                 const task     = item as Task;
+                const isComp   = completing.has(task.id);
                 const daysLeft = differenceInDays(parseISO(task.dueDate), new Date());
                 const dLabel   = daysLeft === 0 ? 'D-day' : daysLeft > 0 ? `D-${daysLeft}` : `D+${Math.abs(daysLeft)}`;
                 return (
-                  <div key={task.id} className="flex items-center gap-2 min-w-0">
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0 border border-text-secondary" />
-                    <span className="text-[12px] text-text-primary flex-1 truncate">{task.title}</span>
-                    <span className="text-[10px] text-text-secondary shrink-0">{dLabel}</span>
-                    <span className="text-[9px] font-semibold shrink-0" style={{ color: PRIORITY_COLOR[task.priority] }}>
+                  <div
+                    key={task.id}
+                    className="flex items-center gap-2.5 min-w-0 transition-all duration-500"
+                    style={{ opacity: isComp ? 0 : 1, transform: isComp ? 'translateX(6px)' : 'none' }}
+                  >
+                    {/* Checkbox */}
+                    <button
+                      onClick={() => !isComp && handleCheck(task.id)}
+                      className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200"
+                      style={{
+                        borderColor:     isComp ? '#4CAF50' : '#ABABAB',
+                        backgroundColor: isComp ? '#4CAF50' : 'transparent',
+                      }}
+                    >
+                      {isComp && <Check size={9} color="white" strokeWidth={3} />}
+                    </button>
+                    <span className={`text-[13px] flex-1 truncate transition-all duration-200 ${isComp ? 'line-through text-text-secondary' : 'text-text-primary'}`}>
+                      {task.title}
+                    </span>
+                    <span className="text-[11px] text-text-secondary shrink-0">{dLabel}</span>
+                    <span className="text-[10px] font-semibold shrink-0" style={{ color: PRIORITY_COLOR[task.priority] }}>
                       {task.priority === 'high' ? '높음' : task.priority === 'medium' ? '보통' : '낮음'}
                     </span>
                   </div>
                 );
               })}
               {todayExtra > 0 && (
-                <p className="text-[10px] text-text-secondary mt-0.5">+{todayExtra}개 더</p>
+                <p className="text-[11px] text-text-secondary mt-0.5">+{todayExtra}개 더</p>
               )}
             </div>
           )}
@@ -116,11 +147,11 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
       )}
 
       {/* ── Week strip ── */}
-      <div className="bg-surface rounded-[14px] px-3.5 pt-3 pb-2.5">
+      <div className="flex-1 flex flex-col bg-surface rounded-[16px] px-4 py-4 min-h-0">
         {/* Nav */}
-        <div className="flex items-center justify-between mb-2.5">
-          <button onClick={() => setWeekStart((w) => subWeeks(w, 1))} className="p-0.5 text-text-secondary hover:text-text-primary">
-            <ChevronLeft size={14} />
+        <div className="flex items-center justify-between mb-3 shrink-0">
+          <button onClick={() => setWeekStart((w) => subWeeks(w, 1))} className="p-1 text-text-secondary hover:text-text-primary">
+            <ChevronLeft size={15} />
           </button>
           <button
             onClick={() => setWeekStart(startOfWeek(new Date(), MON_START))}
@@ -131,36 +162,34 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
             )}
             {format(days[0], 'M.d')} — {format(days[6], 'M.d')}
           </button>
-          <button onClick={() => setWeekStart((w) => addWeeks(w, 1))} className="p-0.5 text-text-secondary hover:text-text-primary">
-            <ChevronRight size={14} />
+          <button onClick={() => setWeekStart((w) => addWeeks(w, 1))} className="p-1 text-text-secondary hover:text-text-primary">
+            <ChevronRight size={15} />
           </button>
         </div>
 
-        {/* Day rows */}
-        <div className="flex flex-col gap-0.5">
+        {/* Day rows — spread evenly to fill available space */}
+        <div className="flex-1 flex flex-col justify-between min-h-0">
           {otherDays.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd');
             const past    = isPast(day) && !isToday(day);
-            const { evs, tskts } = getItems(dateStr);
-            const total   = evs.length + tskts.length;
-            const primary = evs[0] ?? tskts[0] ?? null;
+            const { evs, tsks } = getItems(dateStr);
+            const total   = evs.length + tsks.length;
+            const primary = evs[0] ?? tsks[0] ?? null;
             const extra   = total - 1;
             const isEvent = primary && 'type' in primary;
 
             return (
               <div
                 key={dateStr}
-                className={`flex items-center gap-2 px-1.5 py-1.5 rounded-[8px] transition-opacity ${
-                  past ? 'opacity-35' : 'hover:bg-background'
-                }`}
+                className={`flex items-center gap-3 px-1 transition-opacity ${past ? 'opacity-30' : ''}`}
               >
                 {/* Day label */}
-                <span className="text-[10px] font-semibold text-text-secondary w-8 shrink-0">
+                <span className="text-[11px] font-semibold text-text-secondary w-9 shrink-0">
                   {DAY_KO[day.getDay()]} {format(day, 'd')}
                 </span>
 
                 {total === 0 ? (
-                  <span className="text-[11px] text-text-secondary">여유 ☀️</span>
+                  <span className="text-[12px] text-text-secondary">여유 ☀️</span>
                 ) : primary ? (
                   <>
                     {isEvent ? (
@@ -169,12 +198,12 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
                         style={{ backgroundColor: TYPE_COLOR[(primary as CalendarEvent).type] ?? '#9CA3AF' }}
                       />
                     ) : (
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0 border border-text-secondary" />
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 border border-[#ABABAB]" />
                     )}
-                    <span className="text-[11px] text-text-primary flex-1 truncate">{primary.title}</span>
+                    <span className="text-[12px] text-text-primary flex-1 truncate">{primary.title}</span>
                     {isEvent && (
                       <span
-                        className="text-[9px] px-1 py-0.5 rounded-full font-medium shrink-0"
+                        className="text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0"
                         style={{
                           backgroundColor: (TYPE_COLOR[(primary as CalendarEvent).type] ?? '#9CA3AF') + '20',
                           color: TYPE_COLOR[(primary as CalendarEvent).type] ?? '#9CA3AF',
