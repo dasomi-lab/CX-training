@@ -194,11 +194,8 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
                     <span className="text-[12px] font-medium text-text-primary flex-1 truncate">{primary.title}</span>
                     {isEvent && (
                       <span
-                        className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0"
-                        style={{
-                          backgroundColor: dotColor + '25',
-                          color: dotColor,
-                        }}
+                        className="text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 text-white"
+                        style={{ backgroundColor: dotColor }}
                       >
                         {TYPE_LABEL[(primary as CalendarEvent).type]}
                       </span>
