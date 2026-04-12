@@ -28,7 +28,7 @@ export default function HomePage() {
 
         {/* Mini Calendar */}
         <div className="bg-background rounded-[12px] border border-border shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-3">
-          <MiniCalendar events={events} />
+          <MiniCalendar events={events} tasks={tasks} />
         </div>
 
         {/* Projects + Task Checklist */}

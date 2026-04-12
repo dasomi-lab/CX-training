@@ -6,13 +6,22 @@ import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, format, isSameMonth, isToday, isSameDay, parseISO,
 } from 'date-fns';
-import { CalendarEvent } from '@/types';
+import { CalendarEvent, Task } from '@/types';
+
+const TYPE_COLOR: Record<string, string> = {
+  deadline:  '#D94040',
+  meeting:   '#FF9800',
+  milestone: '#4CAF50',
+  general:   '#9CA3AF',
+};
+const TASK_DOT_COLOR = '#3B82F6';
 
 interface MiniCalendarProps {
   events: CalendarEvent[];
+  tasks?: Task[];
 }
 
-export default function MiniCalendar({ events }: MiniCalendarProps) {
+export default function MiniCalendar({ events, tasks = [] }: MiniCalendarProps) {
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState<Date | null>(null);
 
@@ -20,27 +29,43 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
   const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start, end });
 
-  const deadlineDates = events
-    .filter((e) => e.type === 'deadline')
-    .map((e) => e.date);
+  // dateStr → dot colors (max 3)
+  const dotMap: Record<string, string[]> = {};
+  events.forEach((e) => {
+    const color = TYPE_COLOR[e.type] ?? '#9CA3AF';
+    if (!dotMap[e.date]) dotMap[e.date] = [];
+    if (dotMap[e.date].length < 3) dotMap[e.date].push(color);
+  });
+  tasks.filter((t) => t.status === 'todo').forEach((t) => {
+    if (!dotMap[t.dueDate]) dotMap[t.dueDate] = [];
+    if (dotMap[t.dueDate].length < 3) dotMap[t.dueDate].push(TASK_DOT_COLOR);
+  });
 
-  const selectedEvents = selected
-    ? events.filter((e) => e.date === format(selected, 'yyyy-MM-dd'))
+  const selectedDateStr = selected ? format(selected, 'yyyy-MM-dd') : null;
+  const selectedEvents = selectedDateStr
+    ? events.filter((e) => e.date === selectedDateStr)
+    : [];
+  const selectedTasks = selectedDateStr
+    ? tasks.filter((t) => t.dueDate === selectedDateStr && t.status === 'todo')
     : [];
 
   return (
     <div className="flex flex-col gap-1.5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <button onClick={() => setMonth((m) => { const d = new Date(m); d.setMonth(d.getMonth() - 1); return d; })}
-          className="text-text-secondary hover:text-text-primary">
+        <button
+          onClick={() => setMonth((m) => { const d = new Date(m); d.setMonth(d.getMonth() - 1); return d; })}
+          className="text-text-secondary hover:text-text-primary"
+        >
           <ChevronLeft size={14} />
         </button>
         <span className="text-[11px] font-semibold text-text-primary">
           {format(month, 'MMM yyyy')}
         </span>
-        <button onClick={() => setMonth((m) => { const d = new Date(m); d.setMonth(d.getMonth() + 1); return d; })}
-          className="text-text-secondary hover:text-text-primary">
+        <button
+          onClick={() => setMonth((m) => { const d = new Date(m); d.setMonth(d.getMonth() + 1); return d; })}
+          className="text-text-secondary hover:text-text-primary"
+        >
           <ChevronRight size={14} />
         </button>
       </div>
@@ -57,40 +82,51 @@ export default function MiniCalendar({ events }: MiniCalendarProps) {
         {days.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd');
           const inMonth = isSameMonth(day, month);
-          const today = isToday(day);
+          const todayDay = isToday(day);
           const isSelected = selected && isSameDay(day, selected);
-          const hasDeadline = deadlineDates.includes(dateStr);
+          const dots = inMonth && !isSelected ? (dotMap[dateStr] ?? []) : [];
 
           return (
             <button
               key={dateStr}
               onClick={() => setSelected(isSelected ? null : day)}
-              className={`relative flex items-center justify-center w-6 h-6 mx-auto rounded-full text-[10px] font-medium transition-colors ${
-                !inMonth ? 'text-border' :
-                isSelected ? 'bg-accent text-white' :
-                today ? 'bg-accent/10 text-accent font-bold' :
+              className={`relative flex flex-col items-center justify-start pt-0.5 w-7 h-8 mx-auto rounded-lg text-[10px] font-medium transition-colors ${
+                !inMonth       ? 'text-border' :
+                isSelected     ? 'bg-accent text-white' :
+                todayDay       ? 'bg-accent/10 text-accent font-bold' :
                 'text-text-primary hover:bg-surface'
               }`}
             >
-              {format(day, 'd')}
-              {hasDeadline && inMonth && !isSelected && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent" />
+              <span>{format(day, 'd')}</span>
+              {dots.length > 0 && (
+                <span className="flex gap-[2px] mt-0.5">
+                  {dots.slice(0, 3).map((c, i) => (
+                    <span key={i} className="w-[4px] h-[4px] rounded-full" style={{ backgroundColor: c }} />
+                  ))}
+                </span>
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Selected day events */}
-      {selected && selectedEvents.length > 0 && (
-        <div className="mt-1 space-y-0.5">
-          {selectedEvents.slice(0, 2).map((ev) => (
-            <p key={ev.id} className="text-[10px] text-text-secondary truncate">
-              • {ev.title}
+      {/* Selected day detail */}
+      {selected && (selectedEvents.length > 0 || selectedTasks.length > 0) && (
+        <div className="mt-0.5 space-y-0.5 border-t border-border pt-1.5">
+          {selectedTasks.slice(0, 2).map((t) => (
+            <p key={t.id} className="text-[10px] truncate flex gap-1 items-center">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: TASK_DOT_COLOR }} />
+              <span className="text-text-primary">{t.title}</span>
             </p>
           ))}
-          {selectedEvents.length > 2 && (
-            <p className="text-[10px] text-text-secondary">+{selectedEvents.length - 2} more</p>
+          {selectedEvents.slice(0, 2).map((ev) => (
+            <p key={ev.id} className="text-[10px] truncate flex gap-1 items-center">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: TYPE_COLOR[ev.type] ?? '#9CA3AF' }} />
+              <span className="text-text-primary">{ev.title}</span>
+            </p>
+          ))}
+          {selectedEvents.length + selectedTasks.length > 4 && (
+            <p className="text-[9px] text-text-secondary">+{selectedEvents.length + selectedTasks.length - 4} more</p>
           )}
         </div>
       )}
