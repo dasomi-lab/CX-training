@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, format, isSameMonth, isToday, isSameDay, parseISO,
+  eachDayOfInterval, format, isSameMonth, isToday, parseISO,
   addMonths, subMonths,
 } from 'date-fns';
 import { useDataStore } from '@/store/useDataStore';
 import { mockProjects, mockCategories } from '@/lib/mockData';
 import { CalendarEvent } from '@/types';
+import { supabase, supabaseReady } from '@/lib/supabase';
 
 const EVENT_TYPE_COLOR: Record<string, string> = {
   deadline:  '#D94040',
@@ -22,7 +23,21 @@ const EVENT_TYPE_COLOR: Record<string, string> = {
 export default function CalendarPage() {
   const [month, setMonth] = useState(new Date());
   const [selected, setSelected] = useState<string | null>(null);
+  const [supaEvents, setSupaEvents] = useState<CalendarEvent[]>([]);
   const { events, tasks } = useDataStore();
+
+  useEffect(() => {
+    if (!supabaseReady) return;
+    supabase.from('events').select('*').then(({ data }) => {
+      if (data) {
+        setSupaEvents(data.map((e) => ({
+          id: e.id, title: e.title, date: e.date,
+          endDate: e.end_date ?? undefined,
+          type: e.type, projectId: e.project_id ?? null,
+        })));
+      }
+    });
+  }, []);
 
   const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 });
   const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 });
@@ -42,7 +57,7 @@ export default function CalendarPage() {
       type: 'general' as const,
     }));
 
-  const allEvents = [...events, ...taskEvents];
+  const allEvents = [...events, ...supaEvents, ...taskEvents];
 
   const eventsForDate = (dateStr: string) =>
     allEvents.filter((e) => {

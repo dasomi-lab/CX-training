@@ -74,31 +74,25 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
     <div className="flex-1 flex flex-col gap-3 min-h-0">
 
       {/* ── Today card — always visible ── */}
-      <div className="bg-accent/5 border border-accent/20 rounded-[16px] px-4 py-4 shrink-0">
-          <p className="text-[12px] font-bold text-accent mb-3">
+      <div className="bg-accent text-white rounded-[16px] px-4 py-4 shrink-0">
+          <p className="text-[12px] font-bold opacity-80 mb-3">
             오늘 &middot; {DAY_KO[new Date().getDay()]}요일&nbsp;{format(new Date(), 'M월 d일')}
           </p>
 
           {todayAll.length === 0 ? (
-            <p className="text-[13px] text-text-secondary">오늘 일정이 없어요 ☀️</p>
+            <p className="text-[13px] text-white/70">오늘 일정이 없어요 ☀️</p>
           ) : (
             <div className="flex flex-col gap-2.5">
               {todayVisible.map((item) => {
                 /* CalendarEvent */
                 if ('type' in item) {
-                  const ev    = item as CalendarEvent;
-                  const color = TYPE_COLOR[ev.type] ?? '#9CA3AF';
+                  const ev = item as CalendarEvent;
                   return (
                     <div key={ev.id} className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-5 h-5 shrink-0 flex items-center justify-center">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                      </span>
-                      <span className="text-[13px] text-text-primary flex-1 truncate">{ev.title}</span>
-                      {ev.time && <span className="text-[11px] text-text-secondary shrink-0">{ev.time}</span>}
-                      <span
-                        className="text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0"
-                        style={{ backgroundColor: color + '20', color }}
-                      >
+                      <span className="w-2 h-2 rounded-full shrink-0 bg-white/60" />
+                      <span className="text-[13px] text-white flex-1 truncate">{ev.title}</span>
+                      {ev.time && <span className="text-[11px] text-white/60 shrink-0">{ev.time}</span>}
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 bg-white/20 text-white">
                         {TYPE_LABEL[ev.type]}
                       </span>
                     </div>
@@ -116,29 +110,28 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
                     className="flex items-center gap-2.5 min-w-0 transition-all duration-500"
                     style={{ opacity: isComp ? 0 : 1, transform: isComp ? 'translateX(6px)' : 'none' }}
                   >
-                    {/* Checkbox */}
                     <button
                       onClick={() => !isComp && handleCheck(task.id)}
                       className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200"
                       style={{
-                        borderColor:     isComp ? '#4CAF50' : '#ABABAB',
+                        borderColor:     isComp ? '#4CAF50' : 'rgba(255,255,255,0.6)',
                         backgroundColor: isComp ? '#4CAF50' : 'transparent',
                       }}
                     >
                       {isComp && <Check size={9} color="white" strokeWidth={3} />}
                     </button>
-                    <span className={`text-[13px] flex-1 truncate transition-all duration-200 ${isComp ? 'line-through text-text-secondary' : 'text-text-primary'}`}>
+                    <span className={`text-[13px] flex-1 truncate transition-all duration-200 ${isComp ? 'line-through text-white/40' : 'text-white'}`}>
                       {task.title}
                     </span>
-                    <span className="text-[11px] text-text-secondary shrink-0">{dLabel}</span>
-                    <span className="text-[10px] font-semibold shrink-0" style={{ color: PRIORITY_COLOR[task.priority] }}>
+                    <span className="text-[11px] text-white/60 shrink-0">{dLabel}</span>
+                    <span className="text-[10px] font-semibold shrink-0 text-white/80">
                       {task.priority === 'high' ? '높음' : task.priority === 'medium' ? '보통' : '낮음'}
                     </span>
                   </div>
                 );
               })}
               {todayExtra > 0 && (
-                <p className="text-[11px] text-text-secondary mt-0.5">+{todayExtra}개 더</p>
+                <p className="text-[11px] text-white/60 mt-0.5">+{todayExtra}개 더</p>
               )}
             </div>
           )}

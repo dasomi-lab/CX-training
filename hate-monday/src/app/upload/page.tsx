@@ -2,79 +2,32 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, Trash2, CheckCircle, FileText, Loader2, Sparkles } from 'lucide-react';
-import { useDataStore } from '@/store/useDataStore';
+import { ChevronLeft, Upload, Trash2, CheckCircle, Loader2, Sparkles, Plus } from 'lucide-react';
+import { supabase, supabaseReady } from '@/lib/supabase';
 import { mockProjects } from '@/lib/mockData';
-import { CalendarEvent, Task, EventType } from '@/types';
+import { EventType } from '@/types';
+import { useDataStore } from '@/store/useDataStore';
+
+type ItemType = EventType | 'task';
 
 interface PendingItem {
-  id: string;
-  title: string;
-  date: string;
-  endDate: string;
-  type: EventType | 'task';
+  id:        string;
+  title:     string;
+  date:      string;
+  end_date:  string;
+  type:      ItemType;
   projectId: string;
 }
 
-const EVENT_TYPES: Array<{ value: EventType | 'task'; label: string }> = [
+const EVENT_TYPES: Array<{ value: ItemType; label: string }> = [
   { value: 'task',     label: '할 일' },
-  { value: 'deadline', label: '마감' },
-  { value: 'meeting',  label: '회의' },
-  { value: 'general',  label: '일정' },
+  { value: 'deadline', label: '마감'  },
+  { value: 'meeting',  label: '회의'  },
+  { value: 'general',  label: '일정'  },
 ];
 
 const today = new Date().toISOString().split('T')[0];
 
-/** 텍스트에서 날짜 + 제목 추출 (순수 정규식, 외부 라이브러리 없음) */
-function extractFromText(text: string): PendingItem[] {
-  const currentYear = new Date().getFullYear();
-  const seen = new Set<string>();
-  const results: PendingItem[] = [];
-
-  const toDateStr = (y: number, mo: number, d: number): string | null => {
-    if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
-    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  };
-
-  const getContext = (matchIndex: number, matchText: string): string => {
-    const ls = text.lastIndexOf('\n', matchIndex) + 1;
-    const le = text.indexOf('\n', matchIndex + matchText.length);
-    const line = text.slice(ls, le === -1 ? undefined : le).trim();
-    return line.replace(matchText, '').replace(/^[\s\-·:•]+|[\s\-·:•]+$/g, '').trim();
-  };
-
-  const push = (dateStr: string, title: string) => {
-    const key = `${dateStr}::${title}`;
-    if (!title || seen.has(key)) return;
-    seen.add(key);
-    results.push({ id: crypto.randomUUID(), title, date: dateStr, endDate: '', type: 'general', projectId: '' });
-  };
-
-  // YYYY-MM-DD
-  for (const m of text.matchAll(/(\d{4})-(\d{2})-(\d{2})/g)) {
-    const ds = toDateStr(+m[1], +m[2], +m[3]);
-    if (ds) push(ds, getContext(m.index!, m[0]));
-  }
-  // YYYY년 M월 D일
-  for (const m of text.matchAll(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/g)) {
-    const ds = toDateStr(+m[1], +m[2], +m[3]);
-    if (ds) push(ds, getContext(m.index!, m[0]));
-  }
-  // M월 D일 (올해 연도 자동)
-  for (const m of text.matchAll(/(\d{1,2})월\s*(\d{1,2})일/g)) {
-    const ds = toDateStr(currentYear, +m[1], +m[2]);
-    if (ds) push(ds, getContext(m.index!, m[0]));
-  }
-  // MM/DD 또는 M/D
-  for (const m of text.matchAll(/\b(\d{1,2})\/(\d{1,2})\b/g)) {
-    const ds = toDateStr(currentYear, +m[1], +m[2]);
-    if (ds) push(ds, getContext(m.index!, m[0]));
-  }
-
-  return results.slice(0, 15);
-}
-
-/** FileReader로 텍스트 읽기 (모든 브라우저 호환) */
 function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -92,42 +45,70 @@ export default function UploadPage() {
   const [title,     setTitle]     = useState('');
   const [date,      setDate]      = useState(today);
   const [endDate,   setEndDate]   = useState('');
-  const [type,      setType]      = useState<EventType | 'task'>('task');
+  const [type,      setType]      = useState<ItemType>('task');
   const [projectId, setProjectId] = useState('');
   const [items,     setItems]     = useState<PendingItem[]>([]);
-  const [saved,     setSaved]     = useState(false);
-
-  const [parsing,   setParsing]   = useState(false);
-  const [parseErr,  setParseErr]  = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState('');
   const [extracted, setExtracted] = useState<PendingItem[]>([]);
+  const [saving,    setSaving]    = useState(false);
+  const [saved,     setSaved]     = useState(false);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
 
-    if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {
-      setParseErr('PDF는 현재 미지원입니다. TXT 또는 MD 파일을 사용해 주세요.');
+    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      setUploadErr('PDF는 현재 미지원입니다. TXT 또는 MD 파일을 사용해 주세요.');
       return;
     }
 
-    setParsing(true);
-    setParseErr('');
+    setUploading(true);
+    setUploadErr('');
     setExtracted([]);
 
     try {
-      const text  = await readFileAsText(file);
-      const found = extractFromText(text);
-      if (found.length === 0) {
-        setParseErr('날짜를 찾지 못했습니다. 날짜가 포함된 TXT/MD 파일을 사용해 보세요.');
+      let fileId: string | null = null;
+
+      if (supabaseReady) {
+        const path = `${Date.now()}_${file.name}`;
+        const { error: storageErr } = await supabase.storage.from('uploads').upload(path, file);
+        if (storageErr) throw new Error(`Storage 오류: ${storageErr.message}`);
+
+        const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
+
+        const { data: fileMeta, error: dbErr } = await supabase
+          .from('files')
+          .insert({ name: file.name, storage_path: path, url: urlData.publicUrl, size: file.size, mime_type: file.type || 'text/plain' })
+          .select('id')
+          .single();
+        if (dbErr) throw new Error(`DB 오류: ${dbErr.message}`);
+        fileId = fileMeta?.id ?? null;
+      }
+
+      const text = await readFileAsText(file);
+      const res  = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: fileId, text }),
+      });
+      if (!res.ok) throw new Error('날짜 추출 실패');
+
+      const { items: raw } = await res.json() as { items: Array<{ id: string; title: string; date: string }> };
+
+      if (!raw || raw.length === 0) {
+        setUploadErr('날짜를 찾지 못했습니다. 날짜가 포함된 파일을 사용해 보세요.');
       } else {
-        setExtracted(found);
+        setExtracted(raw.map((r) => ({
+          id: r.id ?? crypto.randomUUID(),
+          title: r.title, date: r.date, end_date: '', type: 'general' as ItemType, projectId: '',
+        })));
       }
     } catch (err) {
-      setParseErr('파일을 읽는 중 오류가 발생했습니다.');
-      console.error(err);
+      setUploadErr(err instanceof Error ? err.message : '파일 처리 중 오류가 발생했습니다.');
     } finally {
-      setParsing(false);
+      setUploading(false);
     }
   };
 
@@ -136,22 +117,38 @@ export default function UploadPage() {
 
   const addToList = () => {
     if (!title.trim() || !date) return;
-    setItems((p) => [...p, { id: crypto.randomUUID(), title: title.trim(), date, endDate, type, projectId }]);
+    setItems((p) => [...p, { id: crypto.randomUUID(), title: title.trim(), date, end_date: endDate, type, projectId }]);
     setTitle(''); setDate(today); setEndDate(''); setType('task'); setProjectId('');
   };
 
-  const remove  = (id: string) => setItems((p) => p.filter((i) => i.id !== id));
+  const remove = (id: string) => setItems((p) => p.filter((i) => i.id !== id));
 
-  const saveAll = () => {
-    items.forEach((item) => {
-      if (item.type === 'task') {
-        addTask({ id: crypto.randomUUID(), projectId: item.projectId || null, title: item.title, dueDate: item.endDate || item.date, status: 'todo', priority: 'medium' } as Task);
-      } else {
-        addEvent({ id: crypto.randomUUID(), projectId: item.projectId || null, title: item.title, date: item.date, endDate: item.endDate || undefined, type: item.type as EventType } as CalendarEvent);
+  const saveAll = async () => {
+    if (items.length === 0) return;
+    setSaving(true);
+    try {
+      if (supabaseReady) {
+        const evRows = items
+          .filter((i) => i.type !== 'task')
+          .map((i) => ({ title: i.title, date: i.date, end_date: i.end_date || null, type: i.type, project_id: i.projectId || null, source: 'manual' }));
+        if (evRows.length > 0) {
+          const { error } = await supabase.from('events').insert(evRows);
+          if (error) throw new Error(error.message);
+        }
       }
-    });
-    setSaved(true);
-    setTimeout(() => router.push('/home'), 1500);
+      items.forEach((item) => {
+        if (item.type === 'task') {
+          addTask({ id: crypto.randomUUID(), projectId: item.projectId || null, title: item.title, dueDate: item.end_date || item.date, status: 'todo', priority: 'medium' });
+        } else {
+          addEvent({ id: crypto.randomUUID(), projectId: item.projectId || null, title: item.title, date: item.date, endDate: item.end_date || undefined, type: item.type as EventType });
+        }
+      });
+      setSaved(true);
+      setTimeout(() => router.push('/home'), 1500);
+    } catch (err) {
+      setUploadErr(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.');
+      setSaving(false);
+    }
   };
 
   if (saved) {
@@ -169,8 +166,14 @@ export default function UploadPage() {
       <button onClick={() => router.back()} className="flex items-center gap-1 text-text-secondary text-sm mb-4 hover:text-text-primary">
         <ChevronLeft size={16} /> Back
       </button>
-      <h1 className="text-xl font-bold text-text-primary mb-1">일정 · 할 일 추가</h1>
-      <p className="text-sm text-text-secondary mb-5">파일에서 자동 인식하거나 직접 입력하세요.</p>
+      <h1 className="text-xl font-bold text-text-primary mb-1">파일 업로드</h1>
+      <p className="text-sm text-text-secondary mb-5">파일에서 일정을 자동 추출하거나 직접 입력하세요.</p>
+
+      {!supabaseReady && (
+        <div className="bg-warning/10 border border-warning/30 rounded-[10px] px-3 py-2.5 mb-4">
+          <p className="text-xs font-medium" style={{ color: '#FF9800' }}>Supabase 미연결 — 추출은 동작하지만 Storage 저장은 건너뜁니다.</p>
+        </div>
+      )}
 
       {/* 파일 업로드 */}
       <div className="bg-surface rounded-[12px] p-4 mb-4 flex flex-col gap-3">
@@ -180,19 +183,13 @@ export default function UploadPage() {
             <p className="text-[10px] text-text-secondary mt-0.5">TXT · MD — 날짜를 자동으로 인식합니다</p>
           </div>
           <label className="flex items-center gap-1.5 bg-accent text-white text-xs font-semibold px-3 py-2 rounded-[8px] cursor-pointer hover:bg-accent-hover transition-colors">
-            <FileText size={13} />
+            <Upload size={13} />
             파일 선택
             <input ref={fileInputRef} type="file" accept=".txt,.md,text/plain" onChange={handleFile} className="hidden" />
           </label>
         </div>
-
-        {parsing && (
-          <div className="flex items-center gap-2 text-text-secondary text-xs">
-            <Loader2 size={13} className="animate-spin" /> 분석 중...
-          </div>
-        )}
-        {parseErr && <p className="text-xs text-accent">{parseErr}</p>}
-
+        {uploading && <div className="flex items-center gap-2 text-text-secondary text-xs"><Loader2 size={13} className="animate-spin" /> 업로드 중...</div>}
+        {uploadErr && <p className="text-xs text-accent">{uploadErr}</p>}
         {extracted.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
@@ -202,15 +199,13 @@ export default function UploadPage() {
             {extracted.map((item) => (
               <div key={item.id} className="flex items-center gap-2 bg-background border border-border rounded-[8px] px-3 py-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-text-primary truncate">{item.title}</p>
+                  <p className="text-[11px] font-medium text-text-primary truncate">{item.title || '(제목 없음)'}</p>
                   <p className="text-[9px] text-text-secondary">{item.date}</p>
                 </div>
-                <button onClick={() => removeExtracted(item.id)} className="text-text-secondary hover:text-accent shrink-0">
-                  <Trash2 size={12} />
-                </button>
+                <button onClick={() => removeExtracted(item.id)} className="text-text-secondary hover:text-accent shrink-0"><Trash2 size={12} /></button>
               </div>
             ))}
-            <button onClick={addAllExtracted} className="flex items-center justify-center gap-1.5 w-full bg-accent/10 text-accent text-xs font-bold py-2 rounded-[8px] hover:bg-accent/15 transition-colors border border-accent/20">
+            <button onClick={addAllExtracted} className="flex items-center justify-center gap-1.5 w-full bg-accent/10 text-accent text-xs font-bold py-2 rounded-[8px] hover:bg-accent/15 border border-accent/20 transition-colors">
               <Plus size={13} /> 전체 추가 ({extracted.length})
             </button>
           </div>
@@ -267,7 +262,6 @@ export default function UploadPage() {
         </button>
       </div>
 
-      {/* 최종 목록 */}
       {items.length > 0 && (
         <>
           <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-2">추가 목록 ({items.length})</h2>
@@ -279,18 +273,17 @@ export default function UploadPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-text-primary truncate">{item.title}</p>
                     <p className="text-[10px] text-text-secondary">
-                      {item.date}{item.endDate ? ` ~ ${item.endDate}` : ''} · {item.type}{proj ? ` · ${proj.name.slice(0, 12)}` : ''}
+                      {item.date}{item.end_date ? ` ~ ${item.end_date}` : ''} · {item.type}{proj ? ` · ${proj.name.slice(0, 12)}` : ''}
                     </p>
                   </div>
-                  <button onClick={() => remove(item.id)} className="text-text-secondary hover:text-accent">
-                    <Trash2 size={14} />
-                  </button>
+                  <button onClick={() => remove(item.id)} className="text-text-secondary hover:text-accent"><Trash2 size={14} /></button>
                 </div>
               );
             })}
           </div>
-          <button onClick={saveAll} className="w-full bg-accent text-white text-sm font-bold py-3 rounded-[12px] hover:bg-accent-hover transition-colors">
-            전체 저장 ({items.length})
+          <button onClick={saveAll} disabled={saving}
+            className="w-full bg-accent text-white text-sm font-bold py-3 rounded-[12px] hover:bg-accent-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            {saving ? <><Loader2 size={16} className="animate-spin" /> 저장 중...</> : `전체 저장 (${items.length})`}
           </button>
         </>
       )}

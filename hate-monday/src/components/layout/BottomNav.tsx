@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, FolderKanban, Calendar, CheckSquare, Users } from 'lucide-react';
+import { Home, FolderKanban, Calendar, CheckSquare, FileText } from 'lucide-react';
 
 const tabs = [
   { label: 'Home',     icon: Home,          href: '/home' },
   { label: 'Projects', icon: FolderKanban,  href: '/projects' },
   { label: 'Calendar', icon: Calendar,      href: '/calendar' },
   { label: 'Tasks',    icon: CheckSquare,   href: '/tasks' },
-  { label: 'Contacts', icon: Users,         href: '/contacts' },
+  { label: 'Files',    icon: FileText,      href: '/files' },
 ];
 
 export default function BottomNav() {
