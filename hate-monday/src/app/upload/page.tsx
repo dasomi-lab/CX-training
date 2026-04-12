@@ -61,7 +61,8 @@ function readFileAsBase64(file: File): Promise<string> {
 export default function UploadPage() {
   const router = useRouter();
   const { addEvent, addTask } = useDataStore();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef  = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [title,     setTitle]     = useState('');
   const [date,      setDate]      = useState(today);
@@ -208,16 +209,24 @@ export default function UploadPage() {
 
       {/* 파일 업로드 */}
       <div className="bg-surface rounded-[12px] p-4 mb-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-text-primary">파일에서 불러오기</p>
-            <p className="text-[10px] text-text-secondary mt-0.5">TXT · MD · PDF · 사진 — AI가 날짜를 자동 인식합니다</p>
+        <div>
+          <p className="text-xs font-bold text-text-primary mb-0.5">파일에서 불러오기</p>
+          <p className="text-[10px] text-text-secondary mb-2.5">AI가 날짜를 자동 인식합니다</p>
+          <div className="grid grid-cols-2 gap-2">
+            {/* 사진 선택 — image/* 단독으로 iOS 사진첩 열림 */}
+            <label className="flex items-center justify-center gap-1.5 bg-accent text-white text-xs font-semibold px-3 py-2.5 rounded-[10px] cursor-pointer hover:bg-accent-hover transition-colors">
+              <span className="text-base leading-none">📷</span>
+              사진 추가
+              <input ref={photoInputRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+            </label>
+            {/* 파일 선택 — TXT / MD / PDF */}
+            <label className="flex items-center justify-center gap-1.5 bg-surface border border-border text-text-primary text-xs font-semibold px-3 py-2.5 rounded-[10px] cursor-pointer hover:border-accent hover:text-accent transition-colors">
+              <Upload size={13} />
+              파일 선택
+              <input ref={fileInputRef} type="file" accept=".txt,.md,.pdf" onChange={handleFile} className="hidden" />
+            </label>
           </div>
-          <label className="flex items-center gap-1.5 bg-accent text-white text-xs font-semibold px-3 py-2 rounded-[8px] cursor-pointer hover:bg-accent-hover transition-colors">
-            <Upload size={13} />
-            파일 선택
-            <input ref={fileInputRef} type="file" accept=".txt,.md,.pdf,image/*" onChange={handleFile} className="hidden" />
-          </label>
+          <p className="text-[10px] text-text-secondary mt-1.5">TXT · MD · PDF · JPG · PNG 지원</p>
         </div>
         {uploading && <div className="flex items-center gap-2 text-text-secondary text-xs"><Loader2 size={13} className="animate-spin" /> 업로드 중...</div>}
         {uploadErr && <p className="text-xs text-accent">{uploadErr}</p>}
