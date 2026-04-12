@@ -177,14 +177,17 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
             const primary = evs[0] ?? tsks[0] ?? null;
             const extra   = total - 1;
             const isEvent = primary && 'type' in primary;
+            const dotColor = isEvent
+              ? (TYPE_COLOR[(primary as CalendarEvent).type] ?? '#9CA3AF')
+              : '#9CA3AF';
 
             return (
               <div
                 key={dateStr}
-                className={`flex items-center gap-3 px-1 transition-opacity ${past ? 'opacity-30' : ''}`}
+                className={`flex items-center gap-3 bg-background rounded-[10px] px-3 py-2 transition-opacity ${past ? 'opacity-40' : ''}`}
               >
                 {/* Day label */}
-                <span className="text-[11px] font-semibold text-text-secondary w-9 shrink-0">
+                <span className={`text-[11px] font-bold w-9 shrink-0 ${past ? 'text-text-secondary' : 'text-text-primary'}`}>
                   {DAY_KO[day.getDay()]} {format(day, 'd')}
                 </span>
 
@@ -192,28 +195,25 @@ export default function WeekView({ events, tasks }: WeekViewProps) {
                   <span className="text-[12px] text-text-secondary">여유 ☀️</span>
                 ) : primary ? (
                   <>
-                    {isEvent ? (
-                      <span
-                        className="w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: TYPE_COLOR[(primary as CalendarEvent).type] ?? '#9CA3AF' }}
-                      />
-                    ) : (
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0 border border-[#ABABAB]" />
-                    )}
-                    <span className="text-[12px] text-text-primary flex-1 truncate">{primary.title}</span>
+                    {/* Colored left indicator dot */}
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: isEvent ? dotColor : 'transparent', border: isEvent ? 'none' : `2px solid #ABABAB` }}
+                    />
+                    <span className="text-[12px] font-medium text-text-primary flex-1 truncate">{primary.title}</span>
                     {isEvent && (
                       <span
-                        className="text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0"
+                        className="text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0"
                         style={{
-                          backgroundColor: (TYPE_COLOR[(primary as CalendarEvent).type] ?? '#9CA3AF') + '20',
-                          color: TYPE_COLOR[(primary as CalendarEvent).type] ?? '#9CA3AF',
+                          backgroundColor: dotColor + '25',
+                          color: dotColor,
                         }}
                       >
                         {TYPE_LABEL[(primary as CalendarEvent).type]}
                       </span>
                     )}
                     {extra > 0 && (
-                      <span className="text-[10px] text-text-secondary shrink-0">+{extra}</span>
+                      <span className="text-[10px] font-medium text-text-secondary shrink-0">+{extra}</span>
                     )}
                   </>
                 ) : null}
