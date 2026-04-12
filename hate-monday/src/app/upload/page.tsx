@@ -28,12 +28,33 @@ const EVENT_TYPES: Array<{ value: ItemType; label: string }> = [
 
 const today = new Date().toISOString().split('T')[0];
 
+const TEXT_TYPES = ['text/plain', 'text/markdown'];
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/gif'];
+const PDF_TYPE    = 'application/pdf';
+
+function isTextFile(file: File)  { return TEXT_TYPES.includes(file.type) || file.name.endsWith('.md') || file.name.endsWith('.txt'); }
+function isImageFile(file: File) { return IMAGE_TYPES.includes(file.type) || file.type.startsWith('image/'); }
+function isPdfFile(file: File)   { return file.type === PDF_TYPE || file.name.endsWith('.pdf'); }
+
 function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload  = (e) => resolve((e.target?.result as string) ?? '');
     reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다'));
     reader.readAsText(file, 'utf-8');
+  });
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = (e) => {
+      const result = e.target?.result as string;
+      // data:xxx;base64,XXXX → XXXX 만 추출
+      resolve(result.split(',')[1] ?? '');
+    };
+    reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다'));
+    reader.readAsDataURL(file);
   });
 }
 
@@ -59,8 +80,8 @@ export default function UploadPage() {
     e.target.value = '';
     if (!file) return;
 
-    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-      setUploadErr('PDF는 현재 미지원입니다. TXT 또는 MD 파일을 사용해 주세요.');
+    if (!isTextFile(file) && !isImageFile(file) && !isPdfFile(file)) {
+      setUploadErr('TXT, MD, PDF, JPG, PNG 파일만 지원합니다.');
       return;
     }
 
@@ -87,11 +108,21 @@ export default function UploadPage() {
         fileId = fileMeta?.id ?? null;
       }
 
-      const text = await readFileAsText(file);
-      const res  = await fetch('/api/extract', {
+      let body: Record<string, string>;
+      if (isTextFile(file)) {
+        const text = await readFileAsText(file);
+        body = { file_id: fileId ?? '', text };
+      } else {
+        // 이미지 또는 PDF → Gemini Vision
+        const base64 = await readFileAsBase64(file);
+        const mimeType = file.type || (isPdfFile(file) ? 'application/pdf' : 'image/jpeg');
+        body = { file_id: fileId ?? '', base64, mimeType };
+      }
+
+      const res = await fetch('/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_id: fileId, text }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('날짜 추출 실패');
 
@@ -180,12 +211,12 @@ export default function UploadPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-text-primary">파일에서 불러오기</p>
-            <p className="text-[10px] text-text-secondary mt-0.5">TXT · MD — 날짜를 자동으로 인식합니다</p>
+            <p className="text-[10px] text-text-secondary mt-0.5">TXT · MD · PDF · 사진 — AI가 날짜를 자동 인식합니다</p>
           </div>
           <label className="flex items-center gap-1.5 bg-accent text-white text-xs font-semibold px-3 py-2 rounded-[8px] cursor-pointer hover:bg-accent-hover transition-colors">
             <Upload size={13} />
             파일 선택
-            <input ref={fileInputRef} type="file" accept=".txt,.md,text/plain" onChange={handleFile} className="hidden" />
+            <input ref={fileInputRef} type="file" accept=".txt,.md,.pdf,image/*" onChange={handleFile} className="hidden" />
           </label>
         </div>
         {uploading && <div className="flex items-center gap-2 text-text-secondary text-xs"><Loader2 size={13} className="animate-spin" /> 업로드 중...</div>}
