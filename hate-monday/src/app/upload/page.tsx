@@ -96,9 +96,9 @@ export default function UploadPage() {
       if (supabaseReady) {
         try {
           const path = `${Date.now()}_${file.name}`;
-          const { error: storageErr } = await supabase.storage.from('uploads').upload(path, file);
+          const { error: storageErr } = await supabase.storage.from('Hate-Monday').upload(path, file);
           if (!storageErr) {
-            const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
+            const { data: urlData } = supabase.storage.from('Hate-Monday').getPublicUrl(path);
             const { data: fileMeta } = await supabase
               .from('files')
               .insert({ name: file.name, storage_path: path, url: urlData.publicUrl, size: file.size, mime_type: file.type || 'text/plain' })
