@@ -10,6 +10,12 @@ import { useDataStore } from '@/store/useDataStore';
 
 type ItemType = EventType | 'task';
 
+interface UploadedFile {
+  id: string;
+  name: string;
+  kind: 'text' | 'image' | 'pdf';
+}
+
 interface PendingItem {
   id:        string;
   title:     string;
@@ -35,6 +41,12 @@ const PDF_TYPE    = 'application/pdf';
 function isTextFile(file: File)  { return TEXT_TYPES.includes(file.type) || file.name.endsWith('.md') || file.name.endsWith('.txt'); }
 function isImageFile(file: File) { return IMAGE_TYPES.includes(file.type) || file.type.startsWith('image/'); }
 function isPdfFile(file: File)   { return file.type === PDF_TYPE || file.name.endsWith('.pdf'); }
+
+function detectFileKind(file: File): UploadedFile['kind'] {
+  if (isPdfFile(file)) return 'pdf';
+  if (isImageFile(file)) return 'image';
+  return 'text';
+}
 
 function readFileAsText(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -75,11 +87,14 @@ export default function UploadPage() {
   const [extracted, setExtracted] = useState<PendingItem[]>([]);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+
+    const kind = detectFileKind(file);
 
     if (!isTextFile(file) && !isImageFile(file) && !isPdfFile(file)) {
       setUploadErr('TXT, MD, PDF, JPG, PNG 파일만 지원합니다.');
@@ -89,6 +104,11 @@ export default function UploadPage() {
     setUploading(true);
     setUploadErr('');
     setExtracted([]);
+
+    setUploadedFiles((prev) => {
+      const filtered = prev.filter((uploaded) => uploaded.kind !== kind);
+      return [...filtered, { id: crypto.randomUUID(), name: file.name, kind }];
+    });
 
     try {
       let fileId: string | null = null;
@@ -148,6 +168,7 @@ export default function UploadPage() {
   };
 
   const removeExtracted = (id: string) => setExtracted((p) => p.filter((i) => i.id !== id));
+  const removeUploadedFile = (id: string) => setUploadedFiles((p) => p.filter((file) => file.id !== id));
   const addAllExtracted = () => { setItems((p) => [...p, ...extracted]); setExtracted([]); };
 
   const addToList = () => {
@@ -253,6 +274,20 @@ export default function UploadPage() {
         </div>
         {uploading && <div className="flex items-center gap-2 text-text-secondary text-xs"><Loader2 size={13} className="animate-spin" /> 업로드 중...</div>}
         {uploadErr && <p className="text-xs text-accent">{uploadErr}</p>}
+        {uploadedFiles.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[11px] font-semibold text-text-primary">업로드 파일 (유형별 1개 유지)</p>
+            {uploadedFiles.map((file) => (
+              <div key={file.id} className="flex items-center gap-2 bg-background border border-border rounded-[8px] px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-text-primary truncate">{file.name}</p>
+                  <p className="text-[9px] text-text-secondary">{file.kind.toUpperCase()}</p>
+                </div>
+                <button onClick={() => removeUploadedFile(file.id)} className="text-text-secondary hover:text-accent shrink-0"><Trash2 size={12} /></button>
+              </div>
+            ))}
+          </div>
+        )}
         {extracted.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
